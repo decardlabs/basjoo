@@ -14,7 +14,7 @@
 ## 4. Deployment cutover
 - [x] 4.1 Add development and production Docker support for `frontend-nextjs/`, including standalone production output.
 - [x] 4.2 Update `docker-compose.yml` to run the new Next.js frontend in dev and prod profiles.
-- [x] 4.3 Update nginx routing so `/` serves the Next.js dashboard while `/api/*`, `/sdk.js`, `/widget-demo`, `/basjoo-logo.png`, and `/health` keep their current backend routing.
+- [x] 4.3 Update nginx routing so `/` serves the Next.js dashboard while `/api/*`, `/sdk.js`, `/widget-demo`, `/ccbot-logo.png`, and `/health` keep their current backend routing.
 
 ## 5. Validation
 - [x] 5.1 Run frontend-nextjs lint, typecheck, and production build validation.

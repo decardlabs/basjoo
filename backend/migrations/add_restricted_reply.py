@@ -16,10 +16,10 @@ DEFAULT_REPLY = "抱歉，当前服务受限，请稍后再试。"
 
 def migrate():
     possible_paths = [
-        "/app/data/basjoo.db",
+        "/app/data/ccbot.db",
         "./test.db",
-        "./data/basjoo.db",
-        "../data/basjoo.db",
+        "./data/ccbot.db",
+        "../data/ccbot.db",
     ]
 
     db_path = None

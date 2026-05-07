@@ -2,7 +2,7 @@
 
 ## Purpose
 
-**Basjoo** is a RAG-based (Retrieval-Augmented Generation) intelligent system that enables businesses to deploy smart chatbots powered by their own knowledge bases. The system supports:
+**Ccbot** is a RAG-based (Retrieval-Augmented Generation) intelligent system that enables businesses to deploy smart chatbots powered by their own knowledge bases. The system supports:
 
 - **Q&A Knowledge Sources**: Curated question-answer pairs for precise responses
 - **URL Knowledge Sources**: Automatic web content scraping and indexing
@@ -242,7 +242,7 @@ AZURE_OPENAI_API_KEY=xxx
 
 # Optional
 JINA_API_KEY=xxx
-DATABASE_URL=sqlite:////app/data/basjoo.db
+DATABASE_URL=sqlite:////app/data/ccbot.db
 ALLOWED_ORIGINS=http://localhost:3000
 SECRET_KEY_FILE=/app/data/.secret_key
 ENCRYPTION_KEY_FILE=/app/data/.encryption_key
@@ -260,4 +260,4 @@ cors_allow_null_origin=false       # enable for file:// widget preview in dev on
 | Modify API client | `frontend-nextjs/src/services/api.ts` |
 | Add translations | `frontend-nextjs/src/locales/{lang}/common.json` |
 | Backend tests | `backend/tests/` |
-| Widget source | `widget/src/BasjooWidget.tsx` |
+| Widget source | `widget/src/CcbotWidget.tsx` |

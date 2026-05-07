@@ -619,7 +619,7 @@ async def prepare_chat_request(
             }
 
     qa_items = None
-    if not os.getenv("BASJOO_TEST_MODE") == "1":
+    if not os.getenv("CCBOT_TEST_MODE") == "1":
         # Try to get QA items from Redis cache first
         from services.redis_service import get_redis
         qa_cache_key = f"qa_items:{agent_id}"
@@ -639,7 +639,7 @@ async def prepare_chat_request(
             }
             for qa in qa_result.scalars().all()
         ]
-        if not os.getenv("BASJOO_TEST_MODE") == "1":
+        if not os.getenv("CCBOT_TEST_MODE") == "1":
             # Cache for 5 minutes
             try:
                 redis = await get_redis()
@@ -884,7 +884,7 @@ async def publish_chat_response(
     assistant_content: Optional[str] = None,
 ) -> None:
     """Broadcast chat updates to admin websocket subscribers."""
-    if os.getenv("BASJOO_TEST_MODE") == "1":
+    if os.getenv("CCBOT_TEST_MODE") == "1":
         return
 
     from services.websocket_service import manager

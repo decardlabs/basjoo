@@ -77,7 +77,7 @@ def _get_per_install_salt() -> bytes:
         return _per_install_salt
 
     # Last-resort fallback for plaintext mode; encryption is unavailable anyway.
-    _per_install_salt = b"basjoo_plaintext!"
+    _per_install_salt = b"ccbot_plaintext!"
     return _per_install_salt
 
 

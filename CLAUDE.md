@@ -18,10 +18,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Start production-style stack: `docker compose --profile prod up -d`
 - Rebuild a service: `docker compose --profile dev up -d --build backend-dev frontend-dev`
 - Follow logs: `docker compose logs -f backend-dev frontend-dev nginx`
+- Dev watch mode (auto-reload on file changes): `docker compose --profile dev up --watch`
 
 ### One-command production install (Ubuntu/Debian)
 
-- Blank server deploy: `curl -fsSL https://raw.githubusercontent.com/haoyiyin/basjoo/main/install-deploy.sh | sudo sh`
+- Blank server deploy: `curl -fsSL https://raw.githubusercontent.com/haoyiyin/ccbot/main/install-deploy.sh | sudo sh`
 - Local repo deploy: `sudo sh install-deploy.sh`
 - Supported systems: Ubuntu and Debian. The script auto-installs Docker/Compose, clones/syncs the repo, and deploys the production profile.
 - Persistent volumes are preserved; `install-deploy.sh` does not remove `backend-data`, `redis-data`, or `qdrant-data`.
@@ -54,6 +55,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Test discovery is configured by `backend/pytest.ini` (`tests/`, `test_*.py`, `Test*`, `test_*`)
 - Health check while developing locally: `curl http://localhost:8000/health`
 
+### Root-level E2E tests (Playwright)
+
+- Smoke tests (dev environment): `npm run test:e2e`
+- All Playwright projects: `npm run test:e2e:all`
+- Production-like E2E: `npm run test:e2e:prod`
+- Widget cross-origin embed tests: `npm run test:e2e:widget`
+- Sync widget bundle to backend: `npm run sync-widget`
+
 ## Architecture
 
 ### Backend request flow
@@ -62,6 +71,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - CORS behavior is intentionally split between Starlette `CORSMiddleware` for normal requests and `apply_cors_headers()` from `backend/middleware/rate_limit.py` for early responses such as rate-limit/413 paths. Keep those in sync via the shared helper; do not add ad-hoc CORS header logic elsewhere.
 - `Origin: null` is only allowed when `cors_allow_null_origin` is explicitly enabled in config; missing `Origin` headers should not receive wildcard CORS.
 - `backend/config.py` centralizes settings. Secrets can come from env vars or on-disk key files; missing/insecure `SECRET_KEY` values are auto-generated and persisted. The default widget agent ID is also persisted to `/app/data/.agent_id`, and can be overridden with `DEFAULT_AGENT_ID`.
+- If `ENCRYPTION_KEY` is not set, the backend auto-generates a Fernet key and persists it to `ENCRYPTION_KEY_FILE` (default `/app/data/.encryption_key`). Stored provider API keys are encrypted with this key.
+- `REQUIRE_SECRET_KEY` should be set to `true` in production to reject auto-generated/insecure secret keys.
+- `cors_allow_null_origin` (boolean, default `false`) controls whether `Origin: null` (e.g., `file://` widget preview) receives wildcard CORS headers.
 - `backend/database.py` sets up the async SQLAlchemy engine/sessionmaker and initializes default workspace/agent data using the configured persistent default agent ID.
 - `backend/models.py` is the system-of-record schema: workspace/agent config, URL and QA knowledge sources, document chunks, chat sessions/messages, quotas, index jobs, and admin users.
 
@@ -71,9 +83,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - URL and Q&A ingestion lives in `backend/api/v1/url_endpoints.py`. Those routers are admin-protected at the router level; URL creation queues async fetch jobs, and refetch/crawl/import operations feed the same knowledge-source tables.
 - Full index rebuilds live in `backend/api/v1/index_endpoints.py`. Those routes are also admin-protected at the router level; rebuild jobs chunk URL/QA content, persist `DocumentChunk` rows, and replace the agent’s Qdrant collection.
 - Retrieval/storage logic is split across `backend/services/qdrant_store.py`, `backend/services/rag_qdrant.py`, `backend/services/scraper.py`, `backend/services/crawler.py`, and `backend/services/llm_service.py`.
+- `backend/services/websocket_service.py` manages admin WebSocket connections with Redis pub/sub for cross-worker broadcasting (session updates, new messages, human takeover).
+- `backend/services/redis_service.py` provides Redis connection and cache fallback helpers.
+- `backend/services/task_lock.py` provides a shared lock service that prevents conflicting operations (e.g., index rebuild vs. URL fetch) on the same agent.
+- `backend/api/v1/schemas.py` defines all Pydantic request/response models with URL safety validation via `validate_url_safe`.
+- `backend/api/v1/sse_utils.py` provides the shared `sse_event()` formatter used by streaming endpoints.
 - URL safety/SSRF checks are centralized in `backend/services/url_safety.py` and reused by both schema validation and scraper fetch/discovery flows. If URL-ingestion policy changes, update the shared safety helper rather than reintroducing regex-only validation in multiple places.
 - `backend/services/llm_service.py` is the provider abstraction layer. Provider selection is driven by `Agent.provider_type`; many providers are implemented via OpenAI-compatible base URLs, while OpenAI Native and Google have dedicated paths.
-- Task concurrency for fetch/rebuild operations is guarded by the shared task lock service used by the URL and index endpoints.
 
 ### Frontend structure
 
@@ -84,9 +100,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Widget structure
 
-- `widget/src/BasjooWidget.tsx` is a self-contained embeddable widget implementation bundled with esbuild.
+- `widget/src/CcbotWidget.tsx` is a self-contained embeddable widget implementation bundled with esbuild.
 - The widget auto-detects `apiBase`, streams chat via SSE, persists visitor/session IDs in `localStorage`, and polls for human-takeover replies.
-- Backend `/sdk.js`, `/basjoo-logo.png`, and widget demo routes are served directly from `backend/main.py`.
+- Backend `/sdk.js`, `/ccbot-logo.png`, and widget demo routes are served directly from `backend/main.py`.
 
 ### Deployment notes
 

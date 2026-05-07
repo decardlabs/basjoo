@@ -16,19 +16,19 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 创建非root用户和数据目录
-RUN groupadd -r basjoo && useradd -r -g basjoo basjoo \
+RUN groupadd -r ccbot && useradd -r -g ccbot ccbot \
     && mkdir -p /app/data /app/.cache \
-    && chown -R basjoo:basjoo /app/data /app/.cache
+    && chown -R ccbot:ccbot /app/data /app/.cache
 
 # 设置环境变量
 ENV HOME=/app
 
 # 复制 entrypoint 和零配置引导脚本
-COPY --chown=basjoo:basjoo docker-entrypoint.py env_bootstrap.py /usr/local/bin/
+COPY --chown=ccbot:ccbot docker-entrypoint.py env_bootstrap.py /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.py /usr/local/bin/env_bootstrap.py
 
 # 复制应用代码
-COPY --chown=basjoo:basjoo . .
+COPY --chown=ccbot:ccbot . .
 
 # 暴露端口
 EXPOSE 8000

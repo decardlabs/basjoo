@@ -23,7 +23,7 @@ def generate_encryption_key() -> str:
 
 def main():
     print("=" * 60)
-    print("Basjoo API Key 加密密钥生成器")
+    print("Ccbot API Key 加密密钥生成器")
     print("=" * 60)
     print()
 

@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    test_mode = os.getenv("BASJOO_TEST_MODE") == "1"
+    test_mode = os.getenv("CCBOT_TEST_MODE") == "1"
 
     logger.info("初始化数据库...")
     await init_db()
@@ -164,10 +164,10 @@ async def get_sdk_js():
 
 
 # Logo 路由 - 用于聊天窗口显示
-@app.get("/basjoo-logo.png")
+@app.get("/ccbot-logo.png")
 async def get_logo():
     """返回 widget logo 文件"""
-    logo_path = os.path.join(os.path.dirname(__file__), "static", "basjoo-logo.png")
+    logo_path = os.path.join(os.path.dirname(__file__), "static", "ccbot-logo.png")
     if os.path.exists(logo_path):
         return FileResponse(logo_path, media_type="image/png")
     return {"error": "Logo not found"}

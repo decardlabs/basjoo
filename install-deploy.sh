@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-BASJOO_REPO_URL=${BASJOO_REPO_URL:-https://github.com/haoyiyin/basjoo}
+BASJOO_REPO_URL=${BASJOO_REPO_URL:-https://github.com/haoyiyin/ccbot}
 BASJOO_BRANCH=${BASJOO_BRANCH:-main}
 BASJOO_FORCE_CLEAN=${BASJOO_FORCE_CLEAN:-1}
 INSTALL_DOCKER_URL=${INSTALL_DOCKER_URL:-https://get.docker.com}
@@ -46,9 +46,9 @@ run_root() {
 if [ "$IS_REPO_SCRIPT" -eq 1 ]; then
   DEFAULT_BASJOO_DIR=$SCRIPT_DIR
 elif [ "$(id -u)" -eq 0 ]; then
-  DEFAULT_BASJOO_DIR=/opt/basjoo
+  DEFAULT_BASJOO_DIR=/opt/ccbot
 else
-  DEFAULT_BASJOO_DIR=$HOME/basjoo
+  DEFAULT_BASJOO_DIR=$HOME/ccbot
 fi
 
 BASJOO_DIR=${BASJOO_DIR:-$DEFAULT_BASJOO_DIR}
@@ -284,23 +284,23 @@ show_failure_logs() {
 
 verify_deployment() {
   log "Waiting for container health checks"
-  wait_for_container basjoo-redis healthy 120 || {
+  wait_for_container ccbot-redis healthy 120 || {
     show_failure_logs
     fail "Redis did not become healthy in time."
   }
-  wait_for_container basjoo-qdrant healthy 120 || {
+  wait_for_container ccbot-qdrant healthy 120 || {
     show_failure_logs
     fail "Qdrant did not become healthy in time."
   }
-  wait_for_container basjoo-backend healthy 180 || {
+  wait_for_container ccbot-backend healthy 180 || {
     show_failure_logs
     fail "Backend did not become healthy in time."
   }
-  wait_for_container basjoo-frontend healthy 180 || {
+  wait_for_container ccbot-frontend healthy 180 || {
     show_failure_logs
     fail "Frontend did not become healthy in time."
   }
-  wait_for_container basjoo-nginx running 120 || {
+  wait_for_container ccbot-nginx running 120 || {
     show_failure_logs
     fail "nginx did not enter the running state in time."
   }
@@ -336,7 +336,7 @@ print_summary() {
   fi
 
   printf '%s\n' ''
-  printf '%s\n' 'Basjoo deployment is ready.'
+  printf '%s\n' 'Ccbot deployment is ready.'
   printf 'Project directory: %s\n' "$BASJOO_DIR"
   if [ -n "$server_domain" ]; then
     if [ -n "$cert_path" ] && [ -n "$key_path" ]; then
@@ -355,7 +355,7 @@ deploy_repo() {
   [ -f "$BASJOO_DIR/deploy.sh" ] || fail "deploy.sh was not found in $BASJOO_DIR."
   [ -f "$BASJOO_DIR/docker-compose.yml" ] || fail "docker-compose.yml was not found in $BASJOO_DIR."
 
-  log "Running Basjoo production deployment"
+  log "Running Ccbot production deployment"
   BASJOO_DOCKER_BIN="$DOCKER_BIN" sh "$BASJOO_DIR/deploy.sh"
 }
 

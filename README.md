@@ -1,8 +1,8 @@
-# Basjoo
+# Ccbot
 
 English | [简体中文](README.zh-CN.md)
 
-Basjoo is an AI customer-support platform with three main parts:
+Ccbot is an AI customer-support platform with three main parts:
 
 - a **FastAPI backend** for agent configuration, chat, indexing, auth, and scheduling
 - a **Next.js admin/dashboard frontend** in `frontend-nextjs/`
@@ -15,7 +15,7 @@ The stack also uses **SQLite** for application data, **Redis** for rate limiting
 For a blank Ubuntu or Debian server, run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/haoyiyin/basjoo/main/install-deploy.sh | sudo sh
+curl -fsSL https://raw.githubusercontent.com/haoyiyin/ccbot/main/install-deploy.sh | sudo sh
 ```
 
 If you already have this repository checked out locally, you can also run:
@@ -202,8 +202,8 @@ npm run test         # vitest
 npm install
 npm run dev          # dev bundle + example server
 npm run build        # full build (typecheck + dev + prod bundles)
-npm run build:dev    # unminified ESM bundle (dist/basjoo-widget.js)
-npm run build:prod   # minified IIFE bundle (dist/basjoo-widget.min.js)
+npm run build:dev    # unminified ESM bundle (dist/ccbot-widget.js)
+npm run build:prod   # minified IIFE bundle (dist/ccbot-widget.min.js)
 npm run typecheck
 npm run test         # vitest
 ```
@@ -336,7 +336,7 @@ The active UI is the Next.js app in `frontend-nextjs/`.
 
 ### Widget
 
-`widget/src/BasjooWidget.tsx` is a self-contained embeddable widget that:
+`widget/src/CcbotWidget.tsx` is a self-contained embeddable widget that:
 
 - auto-detects `apiBase` from the script source URL, infers from dev port 3000 → backend 8000, or falls back to `window.location.origin`
 - fetches `/api/v1/config:public` on init to resolve `default_agent_id`, widget title/color, and welcome message
@@ -408,7 +408,7 @@ Recommended production workflow:
 1. Preserve the backend data volume mounted at `/app/data`.
 2. Redeploy with `docker compose --profile prod up -d --build`.
 3. If you are migrating to a new server and know the old widget `agentId`, set `DEFAULT_AGENT_ID` before starting the backend.
-4. Back up at least `/app/data/basjoo.db` and `/app/data/.agent_id`.
+4. Back up at least `/app/data/ccbot.db` and `/app/data/.agent_id`.
 
 Example `.env` snippet for migration:
 

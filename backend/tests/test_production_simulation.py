@@ -25,7 +25,7 @@ class TestProductionSimulation:
         agent_id = response.json()["id"]
 
         # Import some Q&A data first
-        qa_content = '[{"question": "What is Basjoo?", "answer": "Basjoo is an intelligent system."},'
+        qa_content = '[{"question": "What is Ccbot?", "answer": "Ccbot is an intelligent system."},'
         qa_content += '{"question": "How does it work?", "answer": "It uses RAG technology."}]'
         await client.post(
             f"/api/v1/qa:batch_import?agent_id={agent_id}",
@@ -47,7 +47,7 @@ class TestProductionSimulation:
                     json={
                         "agent_id": agent_id,
                         "session_id": session_id,
-                        "message": f"User {user_id}: What is Basjoo?",
+                        "message": f"User {user_id}: What is Ccbot?",
                     },
                 )
                 return response.status_code == 200

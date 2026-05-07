@@ -19,7 +19,7 @@ const enUSAuthData = JSON.parse(JSON.stringify(enUSAuth));
 // Get initial language from localStorage or default to zh-CN
 const getInitialLanguage = (): string => {
   if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('basjoo_locale');
+    const stored = localStorage.getItem('ccbot_locale');
     if (stored && (stored === 'zh-CN' || stored === 'en-US')) {
       return stored;
     }
@@ -49,7 +49,7 @@ i18n
     ns: ['common', 'auth'],
     detection: {
       order: ['localStorage'],
-      lookupLocalStorage: 'basjoo_locale',
+      lookupLocalStorage: 'ccbot_locale',
       caches: ['localStorage'],
     },
     react: {

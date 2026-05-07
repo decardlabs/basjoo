@@ -67,8 +67,8 @@ export default async function globalSetup(): Promise<void> {
   // 4. Seed a sample QA item
   const qaContent = JSON.stringify([
     {
-      question: 'What is Basjoo?',
-      answer: 'Basjoo is an AI-powered customer service assistant that helps businesses provide instant support to their visitors.',
+      question: 'What is CCBot?',
+      answer: 'CCBot is an AI-powered customer service assistant that helps businesses provide instant support to their visitors.',
     },
   ]);
   const qaRes = await api(`/api/v1/qa:batch_import?agent_id=${agent.id}`, {

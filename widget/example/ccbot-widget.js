@@ -1,4 +1,4 @@
-var BasjooWidget = (() => {
+var CcbotWidget = (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -17,12 +17,12 @@ var BasjooWidget = (() => {
   };
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // src/BasjooWidget.tsx
-  var BasjooWidget_exports = {};
-  __export(BasjooWidget_exports, {
-    default: () => BasjooWidget_default
+  // src/CcbotWidget.tsx
+  var CcbotWidget_exports = {};
+  __export(CcbotWidget_exports, {
+    default: () => CcbotWidget_default
   });
-  var BasjooWidget = class {
+  var CcbotWidget = class {
     config;
     container = null;
     button = null;
@@ -46,8 +46,8 @@ var BasjooWidget = (() => {
      * 初始化Widget
      */
     init() {
-      if (document.getElementById("basjoo-widget-container")) {
-        console.warn("Basjoo Widget already initialized");
+      if (document.getElementById("ccbot-widget-container")) {
+        console.warn("Ccbot Widget already initialized");
         return;
       }
       this.createStyles();
@@ -69,14 +69,14 @@ var BasjooWidget = (() => {
       const style = document.createElement("style");
       style.id = "basjoo-widget-styles";
       style.textContent = `
-      #basjoo-widget-container * {
+      #ccbot-widget-container * {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       }
 
-      #basjoo-widget-button {
+      #ccbot-widget-button {
         position: fixed;
         bottom: 24px;
         ${this.config.position === "left" ? "left" : "right"}: 24px;
@@ -93,18 +93,18 @@ var BasjooWidget = (() => {
         z-index: 9999;
       }
 
-      #basjoo-widget-button:hover {
+      #ccbot-widget-button:hover {
         transform: scale(1.05);
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
       }
 
-      #basjoo-widget-button svg {
+      #ccbot-widget-button svg {
         width: 30px;
         height: 30px;
         fill: white;
       }
 
-      #basjoo-chat-window {
+      #ccbot-chat-window {
         position: fixed;
         bottom: 96px;
         ${this.config.position === "left" ? "left" : "right"}: 24px;
@@ -123,13 +123,13 @@ var BasjooWidget = (() => {
         transition: opacity 0.3s, transform 0.3s;
       }
 
-      #basjoo-chat-window.open {
+      #ccbot-chat-window.open {
         opacity: 1;
         transform: translateY(0);
         pointer-events: all;
       }
 
-      .basjoo-header {
+      .ccbot-header {
         padding: 16px;
         background: ${this.config.themeColor};
         color: white;
@@ -139,7 +139,7 @@ var BasjooWidget = (() => {
         justify-content: space-between;
       }
 
-      .basjoo-header-title {
+      .ccbot-header-title {
         display: flex;
         align-items: center;
         gap: 12px;
@@ -147,7 +147,7 @@ var BasjooWidget = (() => {
         font-size: 16px;
       }
 
-      .basjoo-header-logo {
+      .ccbot-header-logo {
         width: 32px;
         height: 32px;
         border-radius: 6px;
@@ -169,7 +169,7 @@ var BasjooWidget = (() => {
         opacity: 1;
       }
 
-      .basjoo-messages {
+      .ccbot-messages {
         flex: 1;
         overflow-y: auto;
         padding: 16px;
@@ -178,7 +178,7 @@ var BasjooWidget = (() => {
         gap: 12px;
       }
 
-      .basjoo-message {
+      .ccbot-message {
         max-width: 80%;
         padding: 10px 14px;
         border-radius: 12px;
@@ -186,21 +186,21 @@ var BasjooWidget = (() => {
         line-height: 1.5;
       }
 
-      .basjoo-message-user {
+      .ccbot-message-user {
         align-self: flex-end;
         background: ${this.config.themeColor};
         color: white;
         border-bottom-right-radius: 4px;
       }
 
-      .basjoo-message-assistant {
+      .ccbot-message-assistant {
         align-self: flex-start;
         background: #f3f4f6;
         color: #1f2937;
         border-bottom-left-radius: 4px;
       }
 
-      .basjoo-sources {
+      .ccbot-sources {
         margin-top: 8px;
         padding-top: 8px;
         border-top: 1px solid #e5e7eb;
@@ -208,24 +208,24 @@ var BasjooWidget = (() => {
         color: #6b7280;
       }
 
-      .basjoo-sources summary {
+      .ccbot-sources summary {
         cursor: pointer;
         user-select: none;
       }
 
-      .basjoo-source-item {
+      .ccbot-source-item {
         padding: 4px 0;
         color: #9ca3af;
       }
 
-      .basjoo-input-area {
+      .ccbot-input-area {
         padding: 12px 16px;
         border-top: 1px solid #e5e7eb;
         display: flex;
         gap: 8px;
       }
 
-      .basjoo-input {
+      .ccbot-input {
         flex: 1;
         padding: 10px 14px;
         border: 1px solid #d1d5db;
@@ -235,11 +235,11 @@ var BasjooWidget = (() => {
         transition: border-color 0.2s;
       }
 
-      .basjoo-input:focus {
+      .ccbot-input:focus {
         border-color: ${this.config.themeColor};
       }
 
-      .basjoo-send {
+      .ccbot-send {
         width: 40px;
         height: 40px;
         border-radius: 50%;
@@ -253,38 +253,38 @@ var BasjooWidget = (() => {
         transition: opacity 0.2s;
       }
 
-      .basjoo-send:hover {
+      .ccbot-send:hover {
         opacity: 0.9;
       }
 
-      .basjoo-send:disabled {
+      .ccbot-send:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
 
-      .basjoo-loading {
+      .ccbot-loading {
         display: flex;
         gap: 4px;
         padding: 12px;
       }
 
-      .basjoo-loading-dot {
+      .ccbot-loading-dot {
         width: 8px;
         height: 8px;
         border-radius: 50%;
         background: #9ca3af;
-        animation: basjoo-bounce 1.4s infinite ease-in-out both;
+        animation: ccbot-bounce 1.4s infinite ease-in-out both;
       }
 
-      .basjoo-loading-dot:nth-child(1) { animation-delay: -0.32s; }
-      .basjoo-loading-dot:nth-child(2) { animation-delay: -0.16s; }
+      .ccbot-loading-dot:nth-child(1) { animation-delay: -0.32s; }
+      .ccbot-loading-dot:nth-child(2) { animation-delay: -0.16s; }
 
-      @keyframes basjoo-bounce {
+      @keyframes ccbot-bounce {
         0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
         40% { transform: scale(1); opacity: 1; }
       }
 
-      .basjoo-error {
+      .ccbot-error {
         padding: 12px;
         background: #fef2f2;
         color: #991b1b;
@@ -294,7 +294,7 @@ var BasjooWidget = (() => {
       }
 
       @media (max-width: 480px) {
-        #basjoo-chat-window {
+        #ccbot-chat-window {
           width: calc(100vw - 48px);
           height: calc(100vh - 120px);
           bottom: 96px;
@@ -309,7 +309,7 @@ var BasjooWidget = (() => {
      */
     createContainer() {
       this.container = document.createElement("div");
-      this.container.id = "basjoo-widget-container";
+      this.container.id = "ccbot-widget-container";
       document.body.appendChild(this.container);
     }
     /**
@@ -317,7 +317,7 @@ var BasjooWidget = (() => {
      */
     createButton() {
       this.button = document.createElement("div");
-      this.button.id = "basjoo-widget-button";
+      this.button.id = "ccbot-widget-button";
       this.button.innerHTML = `
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
@@ -331,11 +331,11 @@ var BasjooWidget = (() => {
      */
     createChatWindow() {
       this.chatWindow = document.createElement("div");
-      this.chatWindow.id = "basjoo-chat-window";
+      this.chatWindow.id = "ccbot-chat-window";
       this.chatWindow.innerHTML = `
-      <div class="basjoo-header">
-        <div class="basjoo-header-title">
-          ${this.config.logoUrl ? `<img src="${this.config.logoUrl}" class="basjoo-header-logo" alt="">` : ""}
+      <div class="ccbot-header">
+        <div class="ccbot-header-title">
+          ${this.config.logoUrl ? `<img src="${this.config.logoUrl}" class="ccbot-header-logo" alt="">` : ""}
           <span>${this.config.title}</span>
         </div>
         <button class="basjoo-close">
@@ -345,10 +345,10 @@ var BasjooWidget = (() => {
           </svg>
         </button>
       </div>
-      <div class="basjoo-messages"></div>
-      <div class="basjoo-input-area">
-        <input type="text" class="basjoo-input" placeholder="\u8F93\u5165\u60A8\u7684\u95EE\u9898...">
-        <button class="basjoo-send">
+      <div class="ccbot-messages"></div>
+      <div class="ccbot-input-area">
+        <input type="text" class="ccbot-input" placeholder="\u8F93\u5165\u60A8\u7684\u95EE\u9898...">
+        <button class="ccbot-send">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="22" y1="2" x2="11" y2="13"></line>
             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -358,8 +358,8 @@ var BasjooWidget = (() => {
     `;
       const closeBtn = this.chatWindow.querySelector(".basjoo-close");
       closeBtn.addEventListener("click", () => this.toggle());
-      const input = this.chatWindow.querySelector(".basjoo-input");
-      const sendBtn = this.chatWindow.querySelector(".basjoo-send");
+      const input = this.chatWindow.querySelector(".ccbot-input");
+      const sendBtn = this.chatWindow.querySelector(".ccbot-send");
       const send = () => {
         const message = input.value.trim();
         if (message) {
@@ -397,22 +397,22 @@ var BasjooWidget = (() => {
      */
     addMessage(message) {
       this.messages.push(message);
-      const messagesContainer = this.chatWindow?.querySelector(".basjoo-messages");
+      const messagesContainer = this.chatWindow?.querySelector(".ccbot-messages");
       const messageDiv = document.createElement("div");
-      messageDiv.className = `basjoo-message basjoo-message-${message.role}`;
+      messageDiv.className = `ccbot-message ccbot-message-${message.role}`;
       // Escape HTML to prevent XSS — user/server content must not be injected raw.
       const safeContent = this.escapeHtml(message.content).replace(/\n/g, "<br>");
       messageDiv.innerHTML = safeContent;
       if (message.sources && message.sources.length > 0) {
         const sourcesDiv = document.createElement("details");
-        sourcesDiv.className = "basjoo-sources";
+        sourcesDiv.className = "ccbot-sources";
         const safeSources = message.sources.map((source) => {
           const safeTitle = this.escapeHtml(source.title || source.url || "\u6587\u6863");
           const safeQuestion = this.escapeHtml(source.question || "");
           const safeUrl = this.escapeHtml(source.url || "");
           return source.type === "url"
-            ? `<div class="basjoo-source-item">\u{1F4C4} <a href="${safeUrl}" target="_blank" rel="noopener">${safeTitle}</a></div>`
-            : `<div class="basjoo-source-item">\u2753 ${safeQuestion}</div>`;
+            ? `<div class="ccbot-source-item">\u{1F4C4} <a href="${safeUrl}" target="_blank" rel="noopener">${safeTitle}</a></div>`
+            : `<div class="ccbot-source-item">\u2753 ${safeQuestion}</div>`;
         }).join("");
         sourcesDiv.innerHTML = `<summary>\u5F15\u7528\u6765\u6E90 (${message.sources.length})</summary>${safeSources}`;
         messageDiv.appendChild(sourcesDiv);
@@ -424,14 +424,14 @@ var BasjooWidget = (() => {
      * 显示加载动画
      */
     showLoading() {
-      const messagesContainer = this.chatWindow?.querySelector(".basjoo-messages");
+      const messagesContainer = this.chatWindow?.querySelector(".ccbot-messages");
       const loadingDiv = document.createElement("div");
-      loadingDiv.className = "basjoo-loading";
-      loadingDiv.id = "basjoo-loading";
+      loadingDiv.className = "ccbot-loading";
+      loadingDiv.id = "ccbot-loading";
       loadingDiv.innerHTML = `
-      <div class="basjoo-loading-dot"></div>
-      <div class="basjoo-loading-dot"></div>
-      <div class="basjoo-loading-dot"></div>
+      <div class="ccbot-loading-dot"></div>
+      <div class="ccbot-loading-dot"></div>
+      <div class="ccbot-loading-dot"></div>
     `;
       messagesContainer.appendChild(loadingDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -440,16 +440,16 @@ var BasjooWidget = (() => {
      * 移除加载动画
      */
     hideLoading() {
-      const loading = this.chatWindow?.querySelector("#basjoo-loading");
+      const loading = this.chatWindow?.querySelector("#ccbot-loading");
       loading?.remove();
     }
     /**
      * 显示错误
      */
     showError(message) {
-      const messagesContainer = this.chatWindow?.querySelector(".basjoo-messages");
+      const messagesContainer = this.chatWindow?.querySelector(".ccbot-messages");
       const errorDiv = document.createElement("div");
-      errorDiv.className = "basjoo-error";
+      errorDiv.className = "ccbot-error";
       errorDiv.textContent = message;
       messagesContainer.appendChild(errorDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -492,7 +492,7 @@ var BasjooWidget = (() => {
         this.sessionId = data.session_id;
       } catch (error) {
         this.hideLoading();
-        console.error("Basjoo Widget error:", error);
+        console.error("Ccbot Widget error:", error);
         let errorMessage = "\u53D1\u9001\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5";
         if (error.message.includes("fetch")) {
           errorMessage = "\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC";
@@ -511,7 +511,7 @@ var BasjooWidget = (() => {
       styles?.remove();
     }
   };
-  window.BasjooWidget = BasjooWidget;
-  var BasjooWidget_default = BasjooWidget;
-  return __toCommonJS(BasjooWidget_exports);
+  window.CcbotWidget = CcbotWidget;
+  var CcbotWidget_default = CcbotWidget;
+  return __toCommonJS(CcbotWidget_exports);
 })();

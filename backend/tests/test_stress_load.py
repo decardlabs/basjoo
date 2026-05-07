@@ -49,7 +49,7 @@ class TestStressLoad:
                     json={
                         "agent_id": agent_id,
                         "session_id": f"stress_test_{req_id}",
-                        "message": f"Question {req_id}: What is Basjoo?",
+                        "message": f"Question {req_id}: What is Ccbot?",
                     },
                     timeout=10.0
                 )

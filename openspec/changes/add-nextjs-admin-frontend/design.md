@@ -1,5 +1,5 @@
 ## Context
-The admin UI now lives in `frontend-nextjs/` as the canonical dashboard application. Historically, the project migrated from a Vite + React admin app in `frontend/` that used React Router, `AuthContext`, `ThemeContext`, `react-i18next`, and a typed `services/api.ts` client; that legacy app has since been removed after the migration stabilized. Production nginx proxies `/` to `frontend-prod` and keeps `/api/*`, `/sdk.js`, `/widget-demo`, `/basjoo-logo.png`, and `/health` on the Python backend.
+The admin UI now lives in `frontend-nextjs/` as the canonical dashboard application. Historically, the project migrated from a Vite + React admin app in `frontend/` that used React Router, `AuthContext`, `ThemeContext`, `react-i18next`, and a typed `services/api.ts` client; that legacy app has since been removed after the migration stabilized. Production nginx proxies `/` to `frontend-prod` and keeps `/api/*`, `/sdk.js`, `/widget-demo`, `/ccbot-logo.png`, and `/health` on the Python backend.
 
 ## Goals / Non-Goals
 - Goals:

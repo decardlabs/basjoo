@@ -159,7 +159,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             }}>
               <img
                 src="/logo.png"
-                alt="Basjoo Logo"
+                alt="Ccbot Logo"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -178,7 +178,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
               }}>
-                Basjoo
+                Ccbot
               </h1>
               <span style={{
                 fontSize: 'var(--text-xs)',
@@ -466,7 +466,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
             }}>
-              Basjoo AI
+              Ccbot AI
             </span>
           </Link>
           <div style={{ width: '40px' }} />

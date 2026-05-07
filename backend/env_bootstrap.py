@@ -14,7 +14,7 @@ from typing import Callable
 
 def _detect_project_root() -> Path:
     candidates = [
-        Path(os.environ.get("BASJOO_PROJECT_ROOT", "")).expanduser(),
+        Path(os.environ.get("CCBOT_PROJECT_ROOT", "")).expanduser(),
         Path.cwd(),
         Path(__file__).resolve().parent,
         Path(__file__).resolve().parents[1],

@@ -123,7 +123,7 @@ class TestIntegrationWorkflows:
         # Add some knowledge
         qa_content = json.dumps([{
             "question": "What is your name?",
-            "answer": "I am Basjoo AI Assistant."
+            "answer": "I am Ccbot AI Assistant."
         }])
         await client.post(
             f"/api/v1/qa:batch_import?agent_id={agent_id}",

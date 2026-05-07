@@ -121,7 +121,7 @@ class Settings(BaseSettings):
     jina_embedding_api_base: str = "https://api.jina.ai/v1/embeddings"
 
     # 数据库 - SQLite (轻量级MVP方案)
-    database_url: str = "sqlite:///./data/basjoo.db"
+    database_url: str = "sqlite:///./data/ccbot.db"
 
     # Redis 配置
     redis_url: str = "redis://redis:6379/0"
@@ -162,7 +162,7 @@ class Settings(BaseSettings):
     cors_allow_null_origin: bool = False
 
     # 应用
-    app_name: str = "Basjoo"
+    app_name: str = "Ccbot"
     app_port: int = 8000
 
     # 限流

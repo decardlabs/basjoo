@@ -93,7 +93,7 @@ export const Register = () => {
                     }}>
                         <img
                             src="/logo.png"
-                            alt="Basjoo Logo"
+                            alt="Ccbot Logo"
                             style={{
                                 width: '100%',
                                 height: '100%',
@@ -110,7 +110,7 @@ export const Register = () => {
                         backgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                     }}>
-                        Basjoo
+                        Ccbot
                     </h1>
                     <p style={{
                         color: 'var(--color-text-secondary)',

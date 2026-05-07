@@ -1,17 +1,17 @@
 {
-  "name": "@basjoo/widget",
+  "name": "@ccbot/widget",
   "version": "1.0.0",
-  "description": "Basjoo AI Chat Widget - 可嵌入的智能聊天组件",
-  "main": "dist/basjoo-widget.js",
+  "description": "Ccbot AI Chat Widget - 可嵌入的智能聊天组件",
+  "main": "dist/ccbot-widget.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "npm run typecheck && npm run build:dev && npm run build:prod",
-    "build:dev": "esbuild src/BasjooWidget.tsx --bundle --format=esm --outfile=dist/basjoo-widget.js --sourcemap",
-    "build:prod": "esbuild src/BasjooWidget.tsx --bundle --format=iife --outfile=dist/basjoo-widget.min.js --minify --sourcemap",
-    "dev": "esbuild src/BasjooWidget.tsx --bundle --format=iife --outfile=example/basjoo-widget.js --servedir=example",
+    "build:dev": "esbuild src/CcbotWidget.tsx --bundle --format=esm --outfile=dist/ccbot-widget.js --sourcemap",
+    "build:prod": "esbuild src/CcbotWidget.tsx --bundle --format=iife --outfile=dist/ccbot-widget.min.js --minify --sourcemap",
+    "dev": "esbuild src/CcbotWidget.tsx --bundle --format=iife --outfile=example/ccbot-widget.js --servedir=example",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "prepublishOnly": "npm run build"
@@ -21,9 +21,9 @@
     "chatbot",
     "widget",
     "customer-service",
-    "basjoo"
+    "ccbot"
   ],
-  "author": "Basjoo Team",
+  "author": "Ccbot Team",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.10.0",

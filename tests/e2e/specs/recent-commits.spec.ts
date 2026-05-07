@@ -250,16 +250,16 @@ test.describe('Recent commit regressions', () => {
     await page.goto('/');
     await page.addScriptTag({ url: `${API_BASE}/sdk.js` });
     await page.evaluate((currentAgentId) => {
-      const WidgetClass = (window as any).BasjooWidget;
+      const WidgetClass = (window as any).CcbotWidget;
       const widget = new WidgetClass({ agentId: currentAgentId, apiBase: 'http://localhost:8000' });
       return widget.init();
     }, agent.id);
-    await expect(page.locator('#basjoo-widget-button')).toBeVisible({ timeout: 10_000 });
-    await page.locator('#basjoo-widget-button').click();
+    await expect(page.locator('#ccbot-widget-button')).toBeVisible({ timeout: 10_000 });
+    await page.locator('#ccbot-widget-button').click();
     await page.waitForTimeout(1_000);
     expect(dialogs).toEqual([]);
 
-    const dangerousNodes = await page.locator('#basjoo-widget-container a[href^="javascript:"], #basjoo-widget-container script, #basjoo-widget-container img[onerror]').count();
+    const dangerousNodes = await page.locator('#ccbot-widget-container a[href^="javascript:"], #ccbot-widget-container script, #ccbot-widget-container img[onerror]').count();
     expect(dangerousNodes).toBe(0);
   });
 });

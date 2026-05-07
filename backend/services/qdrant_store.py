@@ -264,7 +264,7 @@ class QdrantVectorStore:
         self,
         jina_api_key: str = "",
         embedding_model: str = "jina-embeddings-v3",
-        collection_prefix: str = "basjoo",
+        collection_prefix: str = "ccbot",
         *,
         embedding_provider: str = "jina",
         embedding_api_key: Optional[str] = None,

@@ -149,7 +149,7 @@ class APIService {
   }
 
   private getLocale(): string {
-    return localStorage.getItem('basjoo_locale') || 'zh-CN';
+    return localStorage.getItem('ccbot_locale') || 'zh-CN';
   }
 
   private getStreamBaseUrl(): string {

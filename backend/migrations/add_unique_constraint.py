@@ -8,7 +8,7 @@ import sqlite3
 import os
 
 def migrate():
-    db_path = "/app/data/basjoo.db"
+    db_path = "/app/data/ccbot.db"
 
     if not os.path.exists(db_path):
         print(f"数据库文件不存在: {db_path}")

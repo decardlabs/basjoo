@@ -1,5 +1,5 @@
 /**
- * Unit tests for BasjooWidget helper functions.
+ * Unit tests for CcbotWidget helper functions.
  *
  * Run with: vitest run tests/unit/widget-helpers.test.ts
  * or: jest tests/unit/widget-helpers.test.ts
@@ -176,32 +176,32 @@ describe('Widget API Base Detection (conceptual tests)', () => {
   it('uses configured apiBase when provided', () => {
     // This tests the URL construction logic
     const apiBase = 'https://api.example.com';
-    const url = new URL('/basjoo-logo.png', `${apiBase}/`);
-    expect(url.toString()).toBe('https://api.example.com/basjoo-logo.png');
+    const url = new URL('/ccbot-logo.png', `${apiBase}/`);
+    expect(url.toString()).toBe('https://api.example.com/ccbot-logo.png');
   });
 
   it('handles apiBase with trailing slash', () => {
     const apiBase = 'https://api.example.com/';
-    const url = new URL('/basjoo-logo.png', apiBase);
-    expect(url.toString()).toBe('https://api.example.com/basjoo-logo.png');
+    const url = new URL('/ccbot-logo.png', apiBase);
+    expect(url.toString()).toBe('https://api.example.com/ccbot-logo.png');
   });
 
   it('builds logo URL from relative path', () => {
     const apiBase = '';
     const origin = 'http://localhost';
-    const url = new URL('/basjoo-logo.png', origin);
-    expect(url.toString()).toContain('/basjoo-logo.png');
+    const url = new URL('/ccbot-logo.png', origin);
+    expect(url.toString()).toContain('/ccbot-logo.png');
   });
 });
 
 describe('Widget Storage Key Conventions', () => {
   it('generates session key per agent ID', () => {
     const agentId = 'agt_0123456789ab';
-    const storageKey = `basjoo_session_${agentId}`;
-    expect(storageKey).toBe('basjoo_session_agt_0123456789ab');
+    const storageKey = `ccbot_session_${agentId}`;
+    expect(storageKey).toBe('ccbot_session_agt_0123456789ab');
   });
 
   it('visitor ID uses global key', () => {
-    expect('basjoo_visitor_id').toBe('basjoo_visitor_id');
+    expect('ccbot_visitor_id').toBe('ccbot_visitor_id');
   });
 });

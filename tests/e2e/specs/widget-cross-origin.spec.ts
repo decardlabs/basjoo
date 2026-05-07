@@ -41,14 +41,14 @@ test.describe('Widget Cross-Origin', () => {
     await page.goto(process.env.HOST_ALLOWED_URL!);
 
     // Wait for widget button to appear
-    await expect(page.locator('#basjoo-toggle-button')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#ccbot-toggle-button')).toBeVisible({ timeout: 10_000 });
 
     // Open chat
-    await page.click('#basjoo-toggle-button');
-    await expect(page.locator('#basjoo-chat-window')).toBeVisible({ timeout: 5_000 });
+    await page.click('#ccbot-toggle-button');
+    await expect(page.locator('#ccbot-chat-window')).toBeVisible({ timeout: 5_000 });
 
     // Welcome message should be visible
-    await expect(page.locator('#basjoo-messages-container')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('#ccbot-messages-container')).toBeVisible({ timeout: 5_000 });
   });
 
   test('widget is blocked on disallowed host', async ({ page, request }) => {
@@ -84,16 +84,16 @@ test.describe('Widget Cross-Origin', () => {
     // The widget button may or may not render when blocked.
     // But if it does, trying to send should fail.
     // And regardless, we should see ORIGIN_NOT_ALLOWED in console.
-    const toggleButton = page.locator('#basjoo-toggle-button');
+    const toggleButton = page.locator('#ccbot-toggle-button');
     const buttonVisible = await toggleButton.isVisible({ timeout: 5_000 }).catch(() => false);
 
     if (buttonVisible) {
       await toggleButton.click();
-      const input = page.locator('#basjoo-message-input');
+      const input = page.locator('#ccbot-message-input');
       const inputVisible = await input.isVisible({ timeout: 5_000 }).catch(() => false);
       if (inputVisible) {
         await input.fill('test message');
-        await page.click('#basjoo-send-button');
+        await page.click('#ccbot-send-button');
         await page.waitForTimeout(5_000);
       }
     }

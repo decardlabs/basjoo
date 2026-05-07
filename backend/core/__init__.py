@@ -1,1 +1,1 @@
-# Core utilities for Basjoo backend
+# Core utilities for Ccbot backend

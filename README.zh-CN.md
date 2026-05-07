@@ -1,6 +1,6 @@
-# Basjoo
+# Ccbot
 
-Basjoo 是一个面向 AI 客服场景的平台，主要由三部分组成：
+Ccbot 是一个面向 AI 客服场景的平台，主要由三部分组成：
 
 - `backend/` 中的 **FastAPI 后端**，负责智能体配置、聊天、索引、认证和定时任务
 - `frontend-nextjs/` 中的 **Next.js 管理后台前端**
@@ -18,7 +18,7 @@ Basjoo 是一个面向 AI 客服场景的平台，主要由三部分组成：
 对于一台全新的 Ubuntu 或 Debian 服务器，可直接执行：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/haoyiyin/basjoo/main/install-deploy.sh | sudo sh
+curl -fsSL https://raw.githubusercontent.com/haoyiyin/ccbot/main/install-deploy.sh | sudo sh
 ```
 
 如果你已经在本地检出了仓库，也可以直接运行：
@@ -205,8 +205,8 @@ npm run test         # vitest
 npm install
 npm run dev          # 开发打包 + 示例服务
 npm run build        # 完整构建（类型检查 + 开发 + 生产打包）
-npm run build:dev    # 未压缩 ESM 打包 (dist/basjoo-widget.js)
-npm run build:prod   # 压缩 IIFE 打包 (dist/basjoo-widget.min.js)
+npm run build:dev    # 未压缩 ESM 打包 (dist/ccbot-widget.js)
+npm run build:prod   # 压缩 IIFE 打包 (dist/ccbot-widget.min.js)
 npm run typecheck
 npm run test         # vitest
 ```
@@ -339,7 +339,7 @@ Embedding 设置与聊天模型服务商相互独立。管理员可以在 Playgr
 
 ### Widget
 
-`widget/src/BasjooWidget.tsx` 是一个自包含的可嵌入聊天组件，支持：
+`widget/src/CcbotWidget.tsx` 是一个自包含的可嵌入聊天组件，支持：
 
 - 从脚本 src URL 自动检测 `apiBase`，开发环境下 3000 端口自动推断后端 8000，或回退到 `window.location.origin`
 - 初始化时请求 `/api/v1/config:public` 获取 `default_agent_id`、widget 标题/颜色和欢迎语
@@ -409,7 +409,7 @@ pytest tests/test_api.py::test_name
 1. 保留挂载到 `/app/data` 的 backend 数据卷。
 2. 使用 `docker compose --profile prod up -d --build` 重新部署。
 3. 如果是在新机器迁移且你知道旧 widget 的 `agentId`，请在启动前设置 `DEFAULT_AGENT_ID`。
-4. 至少备份 `/app/data/basjoo.db` 和 `/app/data/.agent_id`。
+4. 至少备份 `/app/data/ccbot.db` 和 `/app/data/.agent_id`。
 
 迁移时的 `.env` 示例：
 

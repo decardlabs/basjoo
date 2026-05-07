@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright E2E configuration for Basjoo.
+ * Playwright E2E configuration for CCBot.
  *
  * Two primary project modes:
  * - 'smoke': Fast functional E2E against dev environment (localhost:3000)

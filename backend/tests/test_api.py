@@ -197,7 +197,7 @@ def test_get_collection_info_prefers_points_count_when_index_not_reported():
     from services.qdrant_store import QdrantVectorStore
 
     store = QdrantVectorStore.__new__(QdrantVectorStore)
-    store._get_collection_name = lambda _agent_id: "basjoo_test"
+    store._get_collection_name = lambda _agent_id: "ccbot_test"
     store.client = SimpleNamespace(
         get_collection=lambda collection_name: SimpleNamespace(
             points_count=3,
@@ -208,7 +208,7 @@ def test_get_collection_info_prefers_points_count_when_index_not_reported():
 
     info = store.get_collection_info("agt_test")
 
-    assert info["name"] == "basjoo_test"
+    assert info["name"] == "ccbot_test"
     assert info["points_count"] == 3
     assert info["vectors_count"] == 3
     assert info["status"] == "green"

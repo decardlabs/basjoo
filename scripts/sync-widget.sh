@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 WIDGET_DIR="$ROOT_DIR/widget"
-SOURCE_BUNDLE="$WIDGET_DIR/dist/basjoo-widget.min.js"
+SOURCE_BUNDLE="$WIDGET_DIR/dist/ccbot-widget.min.js"
 TARGET_BUNDLE="$ROOT_DIR/backend/static/sdk.js"
 
 printf '==> Building widget bundle\n'

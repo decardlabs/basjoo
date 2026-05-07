@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Basjoo Widget 示例</title>
+  <title>Ccbot Widget 示例</title>
   <style>
     * {
       margin: 0;
@@ -88,7 +88,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>🤖 Basjoo AI Widget</h1>
+    <h1>🤖 Ccbot AI Widget</h1>
     <p>
       这是一个可嵌入的AI客服聊天组件示例。点击右下角的聊天按钮开始与AI助手对话！
     </p>
@@ -107,11 +107,11 @@
     <p>在您的网站中添加以下代码：</p>
 
     <div class="code-block">&lt;!-- 加载Widget脚本 --&gt;
-&lt;script src="basjoo-widget.js"&gt;&lt;/script&gt;
+&lt;script src="ccbot-widget.js"&gt;&lt;/script&gt;
 
 &lt;!-- 初始化Widget --&gt;
 &lt;script&gt;
-  new BasjooWidget({
+  new CcbotWidget({
     agentId: 'your_agent_id',
     apiBase: 'http://localhost:8001',
     themeColor: '#3B82F6',
@@ -133,15 +133,15 @@
   position: string        // 可选：位置（left/right）
 }</div>
 
-    <a href="https://github.com/basjoo/basjoo" class="button" target="_blank">
+    <a href="https://github.com/ccbot/ccbot" class="button" target="_blank">
       查看文档 →
     </a>
   </div>
 
   <!-- 加载并初始化Widget -->
-  <script src="basjoo-widget.js"></script>
+  <script src="ccbot-widget.js"></script>
   <script>
-    new BasjooWidget({
+    new CcbotWidget({
       agentId: 'agt_874abcf53314',
       apiBase: 'http://localhost:8001',
       themeColor: '#3B82F6',

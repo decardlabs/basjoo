@@ -1,5 +1,5 @@
 # ============================================
-# Basjoo Docker Compose 配置
+# Ccbot Docker Compose 配置
 # 使用 Profile 区分环境：
 #   - 生产: docker compose --profile prod up -d
 #   - 开发: docker compose --profile dev up -d
@@ -11,7 +11,7 @@ services:
   # ============================================
   redis:
     image: redis:7-alpine
-    container_name: basjoo-redis
+    container_name: ccbot-redis
     command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
@@ -19,7 +19,7 @@ services:
       - "127.0.0.1:6379:6379"
     restart: unless-stopped
     networks:
-      - basjoo-network
+      - ccbot-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -29,14 +29,14 @@ services:
 
   qdrant:
     image: qdrant/qdrant:v1.12.1
-    container_name: basjoo-qdrant
+    container_name: ccbot-qdrant
     volumes:
       - qdrant-data:/qdrant/storage
     ports:
       - "127.0.0.1:6333:6333"
     restart: unless-stopped
     networks:
-      - basjoo-network
+      - ccbot-network
     healthcheck:
       test: ["CMD-SHELL", "timeout 5 bash -c '</dev/tcp/localhost/6333' || exit 1"]
       interval: 10s
@@ -51,9 +51,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: basjoo-backend
+    container_name: ccbot-backend
     environment:
-      - DATABASE_URL=sqlite:////app/data/basjoo.db
+      - DATABASE_URL=sqlite:////app/data/ccbot.db
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
@@ -81,7 +81,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - basjoo-network
+      - ccbot-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -96,10 +96,10 @@ services:
       dockerfile: Dockerfile
       args:
         BACKEND_PROXY_TARGET: http://backend-prod:8000
-    container_name: basjoo-frontend
+    container_name: ccbot-frontend
     restart: unless-stopped
     networks:
-      - basjoo-network
+      - ccbot-network
     environment:
       - NEXT_PUBLIC_API_BASE_URL=
       - BACKEND_PROXY_TARGET=http://backend-prod:8000
@@ -116,7 +116,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
-    container_name: basjoo-nginx
+    container_name: ccbot-nginx
     environment:
       - SERVER_DOMAIN=${SERVER_DOMAIN:-}
     ports:
@@ -131,7 +131,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - basjoo-network
+      - ccbot-network
     profiles: ["prod"]
 
   # ============================================
@@ -141,11 +141,11 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: basjoo-backend-dev
+    container_name: ccbot-backend-dev
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:////app/data/basjoo.db
+      - DATABASE_URL=sqlite:////app/data/ccbot.db
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
@@ -173,7 +173,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - basjoo-network
+      - ccbot-network
     entrypoint: ["python3", "/app/docker-entrypoint.py"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -201,7 +201,7 @@ services:
     build:
       context: ./frontend-nextjs
       dockerfile: Dockerfile.dev
-    container_name: basjoo-frontend-dev
+    container_name: ccbot-frontend-dev
     ports:
       - "3000:3000"
     environment:
@@ -215,7 +215,7 @@ services:
       - backend-dev
     restart: unless-stopped
     networks:
-      - basjoo-network
+      - ccbot-network
     profiles: ["dev"]
     develop:
       watch:
@@ -229,7 +229,7 @@ services:
           action: rebuild
 
 networks:
-  basjoo-network:
+  ccbot-network:
     driver: bridge
 
 volumes:

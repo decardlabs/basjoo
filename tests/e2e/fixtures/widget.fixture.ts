@@ -10,15 +10,15 @@ import { Page, expect } from '@playwright/test';
 export async function openWidgetHost(page: Page, hostUrl: string): Promise<void> {
   await page.goto(hostUrl);
   // Wait for widget button to appear
-  await expect(page.locator('#basjoo-widget-container')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('#ccbot-widget-container')).toBeVisible({ timeout: 10_000 });
 }
 
 /**
  * Opens the widget chat window.
  */
 export async function openChatWindow(page: Page): Promise<void> {
-  await page.click('#basjoo-toggle-button');
-  await expect(page.locator('#basjoo-chat-window')).toBeVisible({ timeout: 5_000 });
+  await page.click('#ccbot-toggle-button');
+  await expect(page.locator('#ccbot-chat-window')).toBeVisible({ timeout: 5_000 });
 }
 
 /**
@@ -32,11 +32,11 @@ export async function sendMessageAndWaitForResponse(
   const timeout = options?.timeout ?? 30_000;
 
   // Fill and send message
-  await page.fill('#basjoo-message-input', message);
-  await page.click('#basjoo-send-button');
+  await page.fill('#ccbot-message-input', message);
+  await page.click('#ccbot-send-button');
 
   // Wait for assistant response to appear
-  await page.waitForSelector('#basjoo-messages-container .message.assistant', { timeout });
+  await page.waitForSelector('#ccbot-messages-container .message.assistant', { timeout });
 }
 
 /**
@@ -45,7 +45,7 @@ export async function sendMessageAndWaitForResponse(
 export async function assertWidgetBlocked(page: Page): Promise<void> {
   // The widget should show an error message when origin is not allowed
   await expect(
-    page.locator('#basjoo-messages-container').getByText(/origin not allowed|error|blocked/i),
+    page.locator('#ccbot-messages-container').getByText(/origin not allowed|error|blocked/i),
   ).toBeVisible({ timeout: 10_000 }).catch(async () => {
     // Fallback: check console for error
     // Widget logs "ORIGIN_NOT_ALLOWED" to console

@@ -13,7 +13,7 @@ from config import DEFAULT_AGENT_SIMILARITY_THRESHOLD
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 TEST_DB_DIR = BACKEND_DIR / ".pytest_dbs"
 
-os.environ["BASJOO_TEST_MODE"] = "1"
+os.environ["CCBOT_TEST_MODE"] = "1"
 
 
 def _host_resolves(host: str) -> bool:
@@ -28,8 +28,8 @@ os.environ.setdefault("QDRANT_HOST", "qdrant" if _host_resolves("qdrant") else "
 os.environ.setdefault("QDRANT_PORT", "6333")
 os.environ.setdefault("REDIS_URL", "redis://redis:6379/0" if _host_resolves("redis") else "redis://localhost:6379/0")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
-os.environ["SECRET_KEY_FILE"] = "/tmp/basjoo_test_secret.key"
-os.environ["ENCRYPTION_KEY_FILE"] = "/tmp/basjoo_test_encryption.key"
+os.environ["SECRET_KEY_FILE"] = "/tmp/ccbot_test_secret.key"
+os.environ["ENCRYPTION_KEY_FILE"] = "/tmp/ccbot_test_encryption.key"
 
 import database
 from database import configure_database, init_db
@@ -58,7 +58,7 @@ def mock_qdrant_store(monkeypatch, request):
             self,
             jina_api_key: str = "",
             embedding_model: str = "jina-embeddings-v3",
-            collection_prefix: str = "basjoo",
+            collection_prefix: str = "ccbot",
             *,
             embedding_provider: str = "jina",
             embedding_api_key: str | None = None,
@@ -99,7 +99,7 @@ def mock_qdrant_store(monkeypatch, request):
         def get_collection_info(self, agent_id: str):
             chunks = store_data.get(agent_id, [])
             return {
-                "name": f"basjoo_{agent_id}",
+                "name": f"ccbot_{agent_id}",
                 "vectors_count": len(chunks),
                 "points_count": len(chunks),
                 "status": "green" if chunks else "not_found",

@@ -65,7 +65,7 @@ async def test_import_qa(client):
 
     # Use unique question to avoid conflicts with existing data
     qa_content = (
-        '[{"question": "What is Basjoo TEST UNIQUE?", "answer": "An intelligent system TEST."}]'
+        '[{"question": "What is Ccbot TEST UNIQUE?", "answer": "An intelligent system TEST."}]'
     )
     response = await client.post(
         f"/api/v1/qa:batch_import?agent_id={agent_id}",

@@ -12,10 +12,10 @@ import shutil
 def migrate():
     # 尝试多个可能的数据库路径
     possible_paths = [
-        "/app/data/basjoo.db",  # Docker环境
+        "/app/data/ccbot.db",  # Docker环境
         "./test.db",             # 本地开发环境
-        "./data/basjoo.db",      # 本地开发环境
-        "../data/basjoo.db",     # 本地开发环境
+        "./data/ccbot.db",      # 本地开发环境
+        "../data/ccbot.db",     # 本地开发环境
     ]
 
     db_path = None

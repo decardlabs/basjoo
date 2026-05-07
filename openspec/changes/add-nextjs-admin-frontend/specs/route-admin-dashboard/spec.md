@@ -21,7 +21,7 @@ The system SHALL route the main admin dashboard entrypoint to the Next.js servic
 - **THEN** the reverse proxy forwards dashboard traffic to the Next.js frontend service
 
 #### Scenario: Backend public endpoints remain unchanged
-- **WHEN** a client requests `/api/*`, `/sdk.js`, `/widget-demo`, `/basjoo-logo.png`, or `/health`
+- **WHEN** a client requests `/api/*`, `/sdk.js`, `/widget-demo`, `/ccbot-logo.png`, or `/health`
 - **THEN** the request continues to resolve through the existing Python backend or its current proxy mapping
 - **AND** this migration does not move those endpoints into Next.js
 
