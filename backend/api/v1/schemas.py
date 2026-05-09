@@ -48,6 +48,9 @@ class ChatRequest(BaseModel):
     params: Optional[Dict[str, Any]] = Field(
         None, description="推理参数（temperature, max_tokens等）"
     )
+    use_agent_engine: bool = Field(
+        False, description="是否使用新版 Agent 引擎（支持循环推理和工具调用）"
+    )
 
 
 class SourceItem(BaseModel):

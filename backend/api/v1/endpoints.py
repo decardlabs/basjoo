@@ -58,6 +58,7 @@ from services import URLNormalizer, TextChunker, TaskType, task_lock
 from core.encryption import encrypt_api_key, decrypt_api_key
 from api.v1.provider_helpers import get_agent_embedding_config
 from services.qdrant_store import clear_disabled_key, clear_client_cache
+from agent import run_agent as run_agent_engine
 from services.rag_qdrant import QdrantRAGService
 from services.qdrant_store import QdrantVectorStore
 from services.llm_service import get_llm_service
@@ -761,6 +762,12 @@ async def prepare_chat_request(
         "sources": build_chat_sources(retrieval_results),
         "temperature": temperature,
         "max_tokens": max_tokens,
+        # Agent 引擎需要的信息
+        "retrieval_results": retrieval_results or [],
+        "agent_system_prompt": agent_system_prompt,
+        "conversation_history": conversation_history if agent_enable_context else [],
+        "current_rag_service": current_rag_service,
+        "qa_items": qa_items,
     }
 
 
@@ -951,6 +958,81 @@ async def chat(
                 taken_over=True,
             )
 
+        # Check if we should use the new Agent engine
+        if request.use_agent_engine:
+            # Extract needed values for Agent engine
+            session_db_id = session.id
+            session_public_id = session.session_id
+            workspace_id = chat_context["workspace_id"]
+            quota_id = chat_context["quota_id"]
+            llm = chat_context["llm"]
+            sources = chat_context["sources"]
+            use_mock_llm = chat_context["use_mock_llm"]
+            _agent = chat_context["agent"]
+            _restricted_reply = _agent.restricted_reply
+
+            # Prepare Agent config
+            agent_config = {
+                "agent_id": request.agent_id,
+                "rag_service": chat_context.get("current_rag_service"),
+                "top_k": chat_context["temperature"],  # Reuse temperature variable
+                "threshold": DEFAULT_AGENT_SIMILARITY_THRESHOLD,
+                "qa_items": chat_context.get("qa_items", []),
+            }
+
+            # Run Agent engine (non-streaming for simplicity)
+            try:
+                reply = await run_agent_engine(
+                    llm_service=llm,
+                    user_input=request.message,
+                    config=agent_config,
+                    system_prompt=chat_context.get("agent_system_prompt"),
+                    retrieval_results=chat_context.get("retrieval_results", []),
+                    conversation_history=chat_context.get("conversation_history", []),
+                    max_steps=5
+                )
+            except Exception:
+                logger.exception("Agent engine failed in chat")
+                fallback = get_restricted_reply(_restricted_reply, "抱歉，当前服务繁忙，请稍后再试。")
+                return ChatResponse(
+                    reply=fallback,
+                    sources=[],
+                    usage=None,
+                    session_id=session_public_id,
+                )
+
+            # Phase 3: Persistence with fresh DB session
+            async with database.AsyncSessionLocal() as persist_db:
+                session_result = await persist_db.execute(
+                    select(ChatSession).where(ChatSession.id == session_db_id)
+                )
+                session_obj = session_result.scalar_one_or_none()
+                if not session_obj:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Session not found for persistence",
+                    )
+
+                assistant_message = await persist_chat_response(
+                    session=session_obj,
+                    workspace_id=workspace_id,
+                    quota_id=quota_id,
+                    request=request,
+                    reply=reply,
+                    sources=sources,
+                    usage=None,
+                    db=persist_db,
+                )
+                await publish_chat_response(session_obj, request.message, reply)
+
+            return ChatResponse(
+                reply=reply,
+                sources=sources,
+                usage=None,
+                session_id=session_public_id,
+                message_id=assistant_message.id,
+            )
+
         # Extract needed IDs before closing session
         session_db_id = session.id
         session_public_id = session.session_id
@@ -1074,6 +1156,91 @@ async def chat_stream(
                             "session_id": session.session_id,
                             "usage": None,
                             "taken_over": True,
+                        },
+                    )
+                    return
+
+                # Check if we should use the new Agent engine
+                if request.use_agent_engine:
+                    # Prepare Agent config
+                    agent_config = {
+                        "agent_id": request.agent_id,
+                        "rag_service": chat_context.get("current_rag_service"),
+                        "top_k": 5,
+                        "threshold": DEFAULT_AGENT_SIMILARITY_THRESHOLD,
+                        "qa_items": chat_context.get("qa_items", []),
+                    }
+
+                    # Extract needed values
+                    session_db_id = session.id
+                    session_public_id = session.session_id
+                    workspace_id = chat_context["workspace_id"]
+                    quota_id = chat_context["quota_id"]
+                    sources = chat_context["sources"]
+                    _agent = chat_context["agent"]
+                    _restricted_reply = _agent.restricted_reply
+
+                    # Run Agent engine (non-streaming)
+                    try:
+                        reply = await run_agent_engine(
+                            llm_service=llm,
+                            user_input=request.message,
+                            config=agent_config,
+                            system_prompt=chat_context.get("agent_system_prompt"),
+                            retrieval_results=chat_context.get("retrieval_results", []),
+                            conversation_history=chat_context.get("conversation_history", []),
+                            max_steps=5
+                        )
+                    except Exception:
+                        logger.exception("Agent engine failed in chat_stream")
+                        fallback = get_restricted_reply(_restricted_reply, "抱歉，当前服务繁忙，请稍后再试。")
+                        yield sse_event("sources", {"sources": []})
+                        yield sse_event("content", {"content": fallback})
+                        yield sse_event(
+                            "done",
+                            {
+                                "message_id": None,
+                                "session_id": session_public_id,
+                                "usage": None,
+                                "taken_over": False,
+                            },
+                        )
+                        return
+
+                    # Send sources first
+                    yield sse_event("sources", {"sources": sources})
+
+                    # Stream the reply character by character for better UX
+                    for char in reply:
+                        yield sse_event("content", {"content": char})
+                        await asyncio.sleep(0)
+
+                    # Persistence
+                    async with database.AsyncSessionLocal() as persist_db:
+                        session_result = await persist_db.execute(
+                            select(ChatSession).where(ChatSession.id == session_db_id)
+                        )
+                        session_obj = session_result.scalar_one_or_none()
+                        if session_obj:
+                            await persist_chat_response(
+                                session=session_obj,
+                                workspace_id=workspace_id,
+                                quota_id=quota_id,
+                                request=request,
+                                reply=reply,
+                                sources=sources,
+                                usage=None,
+                                db=persist_db,
+                            )
+                            await publish_chat_response(session_obj, request.message, reply)
+
+                    yield sse_event(
+                        "done",
+                        {
+                            "message_id": None,
+                            "session_id": session_public_id,
+                            "usage": None,
+                            "taken_over": False,
                         },
                     )
                     return
