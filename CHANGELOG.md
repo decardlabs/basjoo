@@ -4,7 +4,7 @@ All notable changes to this project should be documented in this file.
 
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.3.0] - 2026-05-09
 
 ### Added
 
