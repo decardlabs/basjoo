@@ -6,7 +6,7 @@
 > 测试基础设施是一切开发的前提，在验证体系未建立前，不得开发其他功能。
 > 
 > 生成时间：2026-05-07
-> 最后更新：2026-05-07（TDD 原则重构）
+> 最后更新：2026-05-10（阶段一文件格式扩展）
 
 ---
 
@@ -127,14 +127,24 @@ TDD 开发流程（✅ 正确）：
 
 ### 2.3 评估指标体系
 
-| 指标 | 定义 | 目标值 | 验收方式 |
-|------|------|--------|----------|
-| **回答准确率** | 评估回答是否正确解决用户问题 | ≥ 85% | LLM-as-Judge + 人工抽检 |
-| **来源覆盖率** | 有来源标注的回答占比 | ≥ 95% | 自动统计 |
-| **检索召回率** | 正确答案在 Top-5 检索结果中的比例 | ≥ 90% | 自动计算 |
-| **无答案率** | 知识库无相关内容时的正确拒绝率 | ≥ 80% | 自动化测试 |
-| **首轮解决率** | 用户无需追问即可得到满意回答的比例 | ≥ 70% | 用户反馈统计 |
-| **用户满意度** | 消息末尾 👍 占比 | ≥ 75% | 用户反馈统计 |
+| 指标 | 定义 | 目标值 | 验收方式 | 备注 |
+|------|------|--------|----------|------|
+| **回答准确率** | 评估回答是否正确解决用户问题 | ≥ 85% | LLM-as-Judge + 人工抽检 | |
+| **来源覆盖率** | 有来源标注的回答占比 | ≥ 95% | 自动统计 | |
+| **检索召回率** | 正确答案在 Top-5 检索结果中的比例 | ≥ 90% | 自动计算 | 阶段二引入 NDCG@k / MRR@k |
+| **无答案率** | 知识库无相关内容时的正确拒绝率 | ≥ 80% | 自动化测试 | **阶段一新增拒答测试用例（10-20条）** |
+| **首轮解决率** | 用户无需追问即可得到满意回答的比例 | ≥ 70% | 用户反馈统计 | |
+| **用户满意度** | 消息末尾 👍 占比 | ≥ 75% | 用户反馈统计 | |
+
+**拒答测试说明**（阶段一新增）：
+- 测试集须包含 10-20 条与文档库无关的问题
+- 验证 RAG 是否能正确拒绝回答（而非幻觉作答）
+- 验收标准：拒答准确率 ≥ 80%
+
+**阶段二评估增强**（待引入）：
+- **NDCG@k**：评估相关性排序质量（是否将最相关文档排在第一位）
+- **MRR@k**：评估第一个相关结果的排名
+- **语义相似度**（BLEU/ROUGE）：评估生成答案与预期答案的语义匹配度
 
 ### 2.4 任务拆解
 
@@ -631,19 +641,237 @@ jobs:
 
 ---
 
-#### T1.1 PDF 文档上传
+### 3.1 阶段一：文件格式支持总览
 
-**功能描述**：支持 PDF 文件上传，自动解析文字内容进入知识库。
+> **核心约束：图片/视频是知识库的一等公民，非实时生成，从已有素材提取。**
+
+#### 支持的文件格式
+
+| 格式 | MIME 类型 | 优先级 | 说明 |
+|------|-----------|--------|------|
+| **TXT** | `text/plain` | 🔴 高 | 纯文本，最基础格式 |
+| **HTML** | `text/html` | 🔴 高 | 网页文件，可直接提取正文 |
+| **Markdown** | `text/markdown` | 🔴 高 | `.md` 文件，保持结构 |
+| **PDF** | `application/pdf` | 🔴 高 | 含文字提取 + 内嵌图片索引 |
+| **Word** | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | 🟡 中 | `.docx` 格式，含图片/表格 |
+| **Excel** | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | 🟡 中 | `.xlsx` 格式，表格数据 |
+| **图片** | `image/jpeg`, `image/png`, `image/gif` | 🟢 低 | 独立图片上传（PDF内嵌图片可复用） |
+
+#### 统一上传 API
+
+```
+POST /api/v1/knowledge/upload
+Content-Type: multipart/form-data
+
+file: (binary)
+agent_id: agt_xxx
+file_type: auto  # 或指定：pdf/docx/xlsx/txt/md/image
+
+Response: {
+    "document_id": "doc_xxx",
+    "status": "parsing" | "chunked" | "indexed",
+    "file_type": "pdf",
+    "file_name": "report.pdf",
+    "chunks_created": 45,
+    "images_extracted": 3  # 仅 PDF
+}
+```
+
+#### 图片索引原则
+
+1. **PDF 内嵌图片**：随 PDF 一起处理，提取后作为独立资源索引
+2. **Word 内嵌图片**：随 Word 一起处理，提取后作为独立资源索引
+3. **独立图片上传**：直接作为图片资源索引，支持图片问答
+4. **图片检索**：从知识库已有图片提取返回，禁止实时生成
+
+#### 任务依赖关系
+
+```
+T1.1 文档上传基座（统一上传端点 + 路由分发）
+    ├── T1.2 TXT/Markdown 支持
+    ├── T1.3 PDF 支持（含图片提取）
+    ├── T1.4 Word 支持（含图片/表格）
+    ├── T1.5 Excel 支持
+    └── T1.6 图片上传支持
+```
+
+#### 技术栈配置（已确认，经 RAG 专家评审修正）
+
+**Embedding 模型**：
+- 当前：硅基流动（Silicon Flow）`bge-large-zh-v1.5`
+- 后续：接入 UniAPI 后统一走 UniAPI
+- 向量维度：1024
+- 距离算法：Cosine（余弦）
+
+**Qdrant Collection 设计（⚠️ 已修正：单 Collection + Payload 过滤）**：
+
+> **设计变更说明**：原方案按 `agent_id` 分 Collection，经 RAG 专家评审指出存在资源浪费和运维灾难风险。已修正为单 Collection + Payload 过滤方案。
+
+- **Collection 名称**：`ccbot_docs`（单一集合）
+- **逻辑隔离**：通过 `payload.agent_id` 字段区分不同 agent 的数据
+- **Payload 索引**：对 `agent_id` 建 keyword 索引，查询性能几乎无损
+- **扩展优势**：调整向量维度或距离算法只需操作一个 Collection
+
+```python
+from qdrant_client.models import VectorParams, Distance, PayloadSchemaType
+
+# 创建单一 Collection
+client.create_collection(
+    collection_name="ccbot_docs",
+    vectors_config=VectorParams(
+        size=1024,
+        distance=Distance.COSINE,
+    ),
+)
+
+# 对 agent_id 建 Payload 索引（加速过滤查询）
+client.create_payload_index(
+    collection_name="ccbot_docs",
+    field_name="agent_id",
+    field_schema=PayloadSchemaType.KEYWORD,
+)
+
+# 写入时带 agent_id
+client.upsert(
+    collection_name="ccbot_docs",
+    points=[{
+        "id": chunk_id,
+        "vector": embedding,
+        "payload": {
+            "agent_id": agent_id,
+            "doc_id": doc_id,
+            "chunk_index": 0,
+            "content": "...",
+            "content_type": "text",  # or "image", "table"
+        }
+    }]
+)
+
+# 查询时按 agent_id 过滤
+from qdrant_client.models import Filter, FieldCondition, MatchValue
+
+client.search(
+    collection_name="ccbot_docs",
+    query_vector=query_embedding,
+    query_filter=Filter(must=[
+        FieldCondition(key="agent_id", match=MatchValue(value=agent_id))
+    ]),
+    limit=5,
+)
+```
+
+**图片/文件存储路径**：
+
+| 阶段 | 存储方式 | 路径/位置 | 说明 |
+|------|-----------|------------|------|
+| 阶段一 | 本地文件系统 | `/opt/ccbot/storage/` | 单机部署，定期备份 |
+| 阶段二 | MinIO（S3 兼容） | `s3://ccbot-docs/` | 分布式，支持扩容 |
+
+```python
+# 阶段一：本地存储
+STORAGE_BACKEND = "local"
+LOCAL_STORAGE_PATH = "/opt/ccbot/storage"
+
+# 阶段二：迁移到 MinIO
+# STORAGE_BACKEND = "minio"
+# MINIO_ENDPOINT = "minio.decard.cc"
+# MINIO_BUCKET = "ccbot-docs"
+```
+
+- Qdrant 只存向量 + 元数据（文件路径/URL），**不存原始二进制文件**
+- 图片元数据存入 payload：`{"content_type": "image", "file_path": "/opt/ccbot/storage/images/xxx.jpg", "image_description": "..."}`
+
+**AI 辅助任务模型分配**：
+
+| 任务 | 模型 | 说明 |
+|------|------|------|
+| TXT AI 分段/提取标题 | DeepSeek-chat | 结构化 JSON 输出 |
+| 表格转 Markdown（Excel/Word） | DeepSeek-chat | 需要推理能力 |
+| PDF 内嵌图片描述 | — | 阶段一只存图片，描述留阶段二 |
+| Text Embedding | bge-large-zh-v1.5（硅基流动） | 中文向量化 |
+| RAG 回答生成 | MiniMax（主力）/ DeepSeek（兜底） | 已确认 |
+
+**文本归一化规则**：
+```python
+NORMALIZATION_RULES = {
+    "traditional_to_simplified": True,   # 用 opencc 转换
+    "fullwidth_to_halfwidth": True,       # 英文/数字全角转半角
+    "punctuation": "preserve",           # 保留原文标点
+    "code_blocks": "preserve_as_type",   # 保留并标记 content_type: code
+}
+```
+
+---
+
+#### T1.1 统一文件上传基座
+
+**功能描述**：构建统一的上传入口，根据文件 MIME 类型自动路由到对应解析器。
 
 **验收测试（先定义）**：
 
 | 测试用例 | 输入 | 期望输出 | 验收标准 |
 |----------|------|----------|----------|
-| test_pdf_text_extraction | sample.pdf（10页，含文字/图片） | 文字提取准确率 ≥ 98% | 与 OCR 结果对比 |
-| test_pdf_page_metadata | sample.pdf（5页） | chunk.metadata.page 正确 | 检查数据库 |
-| test_pdf_title_extraction | 带书签的 PDF | 标题层级正确 | 检查 chunk 结构 |
-| test_pdf_encoding | 乱码 PDF | 自动修复或明确报错 | 错误信息友好 |
+| test_upload_pdf | `sample.pdf` | 路由到 PDF 解析器 | status=parsing |
+| test_upload_docx | `sample.docx` | 路由到 Word 解析器 | status=parsing |
+| test_upload_xlsx | `data.xlsx` | 路由到 Excel 解析器 | status=parsing |
+| test_upload_txt | `readme.txt` | 路由到文本解析器 | status=parsing |
+| test_upload_md | `guide.md` | 路由到 Markdown 解析器 | status=parsing |
+| test_upload_image | `photo.jpg` | 路由到图片解析器 | status=parsing |
+| test_upload_unsupported | `sample.exe` | 返回 400 错误 | error="Unsupported file type" |
+| test_upload_large | 50MB PDF | 异步处理 | status=queued |
+
+**任务拆解**：
+- [ ] T1.1.1 MIME 类型检测
+- [ ] T1.1.2 文件大小限制（默认 50MB）
+- [ ] T1.1.3 异步处理队列
+- [ ] T1.1.4 统一错误处理
+
+**质量门禁**：8 个验收测试全部通过
+
+---
+
+#### T1.2 TXT/HTML/Markdown 上传
+
+**功能描述**：支持纯文本、HTML 和 Markdown 文件，保持原有结构。
+
+**验收测试（先定义）**：
+
+| 测试用例 | 输入 | 期望输出 | 验收标准 |
+|----------|------|----------|----------|
+| test_txt_utf8 | UTF-8 文本 | 正常解析 | content 完整 |
+| test_txt_gbk | GBK 编码文本 | 自动转换 | content 正确 |
+| test_txt_empty | 空文件 | 返回空 chunks | 不报错 |
+| test_md_headers | 带 H1-H6 的 md | 标题层级保留 | metadata.heading_level |
+| test_md_code | 带代码块 md | 代码块不丢失 | 格式保留 |
+| test_md_link | 带链接 md | 链接保留 | href 不丢失 |
+| test_html_parse | 完整 HTML | 提取正文 | 移除 script/style |
+| test_html_preserve | 带结构的 HTML | 标题/段落保留 | 结构完整 |
+
+**任务拆解**：
+- [ ] T1.2.1 编码自动检测与转换（txt/html/md）
+- [ ] T1.2.2 HTML 解析（BeautifulSoup）和正文提取
+- [ ] T1.2.3 Markdown 标题层级提取
+- [ ] T1.2.4 代码块和链接保留
+
+**质量门禁**：6 个验收测试全部通过
+
+---
+
+#### T1.3 PDF 文档上传
+
+**功能描述**：支持 PDF 文件上传，提取文字内容和内嵌图片。
+
+**验收测试（先定义）**：
+
+| 测试用例 | 输入 | 期望输出 | 验收标准 |
+|----------|------|----------|----------|
+| test_pdf_text_extraction | 10页 PDF | 文字提取准确率 ≥ 98% | 与 OCR 对比 |
+| test_pdf_page_metadata | 5页 PDF | chunk.metadata.page 正确 | 每页对应 |
+| test_pdf_title_extraction | 带书签 PDF | 标题层级正确 | chunk 结构 |
+| test_pdf_encoding | 乱码 PDF | 自动修复或报错 | 错误信息友好 |
 | test_pdf_corrupted | 损坏 PDF | 返回明确错误 | 不崩溃 |
+| test_pdf_image_extract | 含 3 张图片 PDF | 提取 3 张图片 | images_extracted=3 |
+| test_pdf_image_index | PDF 内嵌图片 | 图片独立索引 | 可检索 |
 
 **API 设计**：
 ```
@@ -655,121 +883,399 @@ agent_id: agt_xxx
 
 Response: {
     "document_id": "doc_xxx",
-    "status": "parsing" | "chunked" | "indexed",
+    "status": "indexed",
+    "file_type": "pdf",
     "page_count": 10,
-    "chunks_created": 45
+    "chunks_created": 45,
+    "images_extracted": 3
 }
 ```
 
 **任务拆解**：
-- [ ] T1.1.1 实现文件上传端点
-- [ ] T1.1.2 集成 pypdf 解析
-- [ ] T1.1.3 保留页码元数据
-- [ ] T1.1.4 错误处理（损坏/加密）
-- [ ] T1.1.5 前端上传 UI + 进度条
+- [ ] T1.3.1 集成 pypdf/PyMuPDF 解析
+- [ ] T1.3.2 页码元数据保留
+- [ ] T1.3.3 内嵌图片提取（pillow）
+- [ ] T1.3.4 图片独立索引
+- [ ] T1.3.5 加密/损坏 PDF 处理
+
+**质量门禁**：7 个验收测试全部通过
+
+---
+
+#### T1.4 Word/DOCX 上传
+
+**功能描述**：支持 Word 文档上传，保留段落/标题结构和内嵌图片/表格。
+
+**验收测试（先定义）**：
+
+| 测试用例 | 输入 | 期望输出 | 验收标准 |
+|----------|------|----------|----------|
+| test_docx_paragraph | sample.docx | 段落结构保留 | chunk 边界正确 |
+| test_docx_headings | 多级标题文档 | H1-H4 层级正确 | metadata 完整 |
+| test_docx_table | 含表格文档 | 表格行列保留 | 不丢失数据 |
+| test_docx_image | 含内嵌图片 | 图片提取成功 | 可独立访问 |
+| test_docx_complex | 复杂排版文档 | 内容完整 | 无遗漏 |
+
+**任务拆解**：
+- [ ] T1.4.1 集成 python-docx
+- [ ] T1.4.2 标题层级保留
+- [ ] T1.4.3 表格结构处理
+- [ ] T1.4.4 内嵌图片提取
+- [ ] T1.4.5 前端上传 UI
 
 **质量门禁**：5 个验收测试全部通过
 
 ---
 
-#### T1.2 Word/DOCX 上传
+#### T1.5 Excel/XLSX 上传
 
-**功能描述**：支持 Word 文档上传，保留段落/标题结构。
+**功能描述**：支持 Excel 表格上传，提取工作表、行列数据。
 
 **验收测试（先定义）**：
 
 | 测试用例 | 输入 | 期望输出 | 验收标准 |
 |----------|------|----------|----------|
-| test_docx_paragraph | sample.docx | 段落结构保留 | 检查 chunk 边界 |
-| test_docx_headings | 带多级标题文档 | H1-H4 层级正确 | 检查 metadata |
-| test_docx_table | 含表格文档 | 表格结构保留 | 不丢失行列 |
-| test_docx_image | 含内嵌图片 | 图片提取成功 | 图片可访问 |
+| test_xlsx_single_sheet | 单工作表 | 正确解析 | 数据完整 |
+| test_xlsx_multi_sheet | 3 个工作表 | 全部解析 | sheet_names 正确 |
+| test_xlsx_formula | 含公式格子 | 公式值而非公式 | 计算结果 |
+| test_xlsx_empty | 空工作表 | 空 chunks | 不报错 |
+| test_xlsx_mixed | 文本+数字混合 | 类型保留 | 类型正确 |
 
 **任务拆解**：
-- [ ] T1.2.1 集成 python-docx
-- [ ] T1.2.2 保留标题层级
-- [ ] T1.2.3 表格结构处理
-- [ ] T1.2.4 前端上传 UI
+- [ ] T1.5.1 集成 openpyxl
+- [ ] T1.5.2 多工作表处理
+- [ ] T1.5.3 表格转文本块
 
-**质量门禁**：4 个验收测试全部通过
+**质量门禁**：5 个验收测试全部通过
 
 ---
 
-#### T1.3 数据清洗
+#### T1.6 图片上传
 
-**功能描述**：清洗爬取的网页内容，移除噪音，保留正文。
+**功能描述**：支持独立图片上传，作为知识库一等公民独立索引。
+
+> **注意**：此任务可晚于其他文档格式实现，因为 PDF/Word 内嵌图片已可处理。
 
 **验收测试（先定义）**：
 
 | 测试用例 | 输入 | 期望输出 | 验收标准 |
 |----------|------|----------|----------|
-| test_clean_nav_removal | 含导航栏 HTML | 导航栏已移除 | 清洗后无 nav/menu |
-| test_clean_footer_removal | 含页脚 HTML | 页脚已移除 | 清洗后无 footer |
-| test_clean_dedup | 同一 URL 重复爬取 | 不重复索引 | content_hash 对比 |
-| test_clean_encoding | 非 UTF-8 内容 | 自动修复或标记 | 乱码率 < 1% |
-| test_clean_metadata | 结构化 HTML | title/content 分离 | metadata 完整 |
+| test_image_jpeg | 1MB JPEG | 成功索引 | document_id 返回 |
+| test_image_png | PNG 透明图 | 保留透明通道 | alpha 通道不丢失 |
+| test_image_gif | GIF 动图 | 首帧提取 | 静态索引 |
+| test_image_large | 10MB 图片 | 缩放存储 | 存储 < 5MB |
+| test_image_caption | 图片 + alt text | alt text 作为描述 | metadata.caption |
+
+**任务拆解**：
+- [ ] T1.6.1 图片格式验证
+- [ ] T1.6.2 图片存储优化（压缩/缩放）
+- [ ] T1.6.3 图片多模态 embedding
+- [ ] T1.6.4 alt text / 文件名作为 caption
+
+**质量门禁**：5 个验收测试全部通过
+
+---
+
+### 3.3 数据清洗
+
+> **阶段一清洗决策（已确认）**：
+> 1. PDF 扫描版 OCR：本阶段不支持，标记跳过
+> 2. 重复文件检测：基于 content_hash 去重
+> 3. 表格处理：转成 Markdown 文本入库
+> 4. TXT 文件：尝试用 AI 自动分段和提取标题
+> 5. 清洗失败处理：尝试部分提取，并报错
+
+#### T1.7 数据清洗
+
+**功能描述**：清洗上传的文档内容，移除噪音，保留正文；支持重复检测、表格转 Markdown、AI 辅助分段。
+
+**验收测试（先定义）**：
+
+| 测试用例 | 输入 | 期望输出 | 验收标准 |
+|----------|------|----------|----------|
+| test_clean_dedup_hash | 相同文件上传2次 | 第二次拒绝或覆盖 | content_hash 一致 |
+| test_clean_table_to_md | Word/Excel 含表格 | 表格转 Markdown 入库 | 行列数据不丢失 |
+| test_clean_txt_ai_segment | 无结构 TXT 文件 | AI 自动分段 + 提取标题 | 标题置信度 ≥ 70% |
+| test_clean_partial_extract | 部分损坏的 PDF | 提取完整页 + 报错提示 | 部分内容入库 |
+| test_clean_scan_ocr_skip | 扫描版 PDF | 标记 `needs_ocr=true`，跳过 | 不阻塞其他文件 |
+| test_clean_encoding | GBK/UTF-8 混合 | 自动检测并转换 | 乱码率 < 1% |
+| test_clean_html_noise | 含 nav/footer 的 HTML | 噪音移除 | 正文完整度 ≥ 95% |
 
 **清洗规则**：
 ```python
 CLEANING_RULES = {
-    "remove_tags": ["nav", "footer", "header", "aside", "script", "style", "iframe"],
-    "remove_selectors": [".nav", ".menu", ".sidebar", ".ad", ".advertisement"],
-    "preserve_tags": ["main", "article", "section", "p", "h1", "h2", "h3", "ul", "ol", "table"],
+    "dedup": {
+        "method": "content_hash_md5",
+        "action_on_duplicate": "reject_with_message",  # 或 "overwrite"
+    },
+    "table": {
+        "convert_to": "markdown",
+        "preserve_header": True,
+        "merge_merged_cells": True,  # Excel 合并单元格展开
+        "ai_model": "deepseek-chat",  # 表格理解用 DeepSeek
+    },
+    "txt_ai_segment": {
+        "enabled": True,
+        "model": "deepseek-chat",
+        "prompt": "请对以下纯文本进行分段，并提取各级标题（如有可能）。输出 JSON：{title: str, sections: [{heading: str, content: str}]}",
+    },
+    "scan_pdf": {
+        "detect_method": "text_layer_length < 50 chars/page",
+        "action": "mark_needs_ocr_and_skip",
+    },
+    "partial_failure": {
+        "strategy": "extract_best_effort",
+        "report_failed_pages": True,
+    },
+    "normalization": {
+        # 繁简与编码
+        "traditional_to_simplified": True,   # 用 opencc 转换
+        "fullwidth_to_halfwidth": True,       # 英文/数字全角转半角
+        "html_entities": "decode",             # &nbsp;→空格，&lt;→<，&amp;→&
+        # 格式与内容
+        "whitespace": "collapse",             # 合并连续空白为 1 个空格
+        "invisible_chars": "remove",           # 过滤零宽字符/BOM/控制字符
+        "punctuation": "preserve",            # 保留原文标点
+        "markdown_syntax": "preserve",         # 保留 **bold**、[text](url) 等原始格式
+        "code_blocks": "preserve_as_type",    # 保留并标记 content_type: code
+        # 日期与公式
+        "date": {
+            "format": "preserve_original_plus_iso",
+            "example": "2024年5月10日 → 2024年5月10日 [DATE:2024-05-10]",
+        },
+        "formula": {
+            "latex": "preserve_as_is",           # 保留 $E=mc^2$ 原文
+            "omml": "convert_to_latex_or_preserve_unicode",  # Word 公式对象
+            "unicode_math": "preserve",            # 保留 ∫∑√∞ 等数学符号
+            "allow_long_chunk": True,              # 公式可略超 max_tokens
+        },
+    },
 }
 ```
 
 **任务拆解**：
-- [ ] T1.3.1 基于 DOM 结构过滤
-- [ ] T1.3.2 content_hash 去重
-- [ ] T1.3.3 编码自动修复
-- [ ] T1.3.4 预览清洗结果 API
+- [ ] T1.7.1 基于 content_hash 的重复文件检测
+- [ ] T1.7.2 表格转 Markdown（Word/Excel，AI 模型 deepseek-chat）
+- [ ] T1.7.3 TXT 文件 AI 自动分段/提取标题（deepseek-chat）
+- [ ] T1.7.4 扫描版 PDF 检测与标记（跳过，W101）
+- [ ] T1.7.5 部分提取失败处理（报错 + 入库成功部分，W103）
+- [ ] T1.7.6 HTML 噪音移除（nav/footer/aside/script/style）
+- [ ] T1.7.7 编码自动检测（chardet）
+- [ ] T1.7.8 繁简转换（opencc）
+- [ ] T1.7.9 文本归一化（全角→半角、代码块标记）
 
-**质量门禁**：5 个验收测试全部通过
+**质量门禁**：7 个验收测试全部通过
 
 ---
 
-#### T1.4 语义切块
+#### T1.8 语义切块
 
-**功能描述**：按标题层级和语义边界切分文档，提高检索准确率。
+> **Chunk 策略（已确认）**：混合策略（方案 D）—— 既按数量分块，又保证语义完整性。
 
-**验收测试（先定义）**：
+**核心原则**：
+- 有结构的文档（MD/Word/PDF 有标题）→ 优先按标题层级切分
+- 无结构文档（TXT）→ AI 分段失败则 fallback 到固定 Token
+- 表格（Excel/Word 表格）→ 一个表格一个 chunk
+- chunk 最小长度 ≥ 50 tokens，不足则合并到上一个 chunk
+- Overlap = 动态计算：`chunk_size × (10%~20%)`
 
-| 测试用例 | 输入 | 期望输出 | 验收标准 |
-|----------|------|----------|----------|
-| test_chunk_heading_boundary | H1-H4 文档 | 标题边界完整率 ≥ 95% | 边界不错位 |
-| test_chunk_overlap | 500 tokens 切块 | 上下文重叠 10-20% | 重叠合理 |
-| test_chunk_metadata | 多来源文档 | title/url/page 完整 | metadata 正确 |
-| test_chunk_semantic | 语义边界明确的文档 | 不跨语义主题 | 主题内聚 |
-| test_chunk_size_config | 不同大小配置 | 切块大小符合配置 | 配置生效 |
+** chunk 配置**：
+```python
+CHUNK_CONFIG = {
+    "max_tokens": 512,
+    "min_tokens": 50,           # 不足则合并到前一个 chunk
+    "overlap_ratio": "dynamic",  # 10-20% of chunk_size
+    "overlap_tokens": None,       # 动态计算，设此字段则覆盖
+    "respect_heading": True,      # 优先在标题处切分
+    "merge_short_chunks": True,
+    "table_as_single_chunk": True,# Excel/Word 表格整体作为一个 chunk
+    "txt_fallback": "smart_fixed_token", # ⚠️ 已优化：优先在标点/换行符处切分
+    "overlap_semantic": True,    # ⚠️ 新增：Overlap 内容保证语义完整
+}
+
+# ⚠️ 智能固定 Token 切分（优化版，避免破坏语义）
+def smart_fixed_chunk(text: str, max_tokens: int = 512, min_tokens: int = 50):
+    """优化版固定Token切分：优先在标点/换行符处切分，保证语义完整"""
+    import re
+    from roughkness import tokenizer  # 或用 tiktoken
+    
+    def count_tokens(s):
+        return len(tokenizer.encode(s))
+    
+    tokens = count_tokens(text)
+    if tokens <= max_tokens:
+        return [text]
+    
+    chunks = []
+    current_chunk = ""
+    
+    # 按句子分割（。！？\n 作为优先切分点）
+    # 避免硬切分破坏句子
+    sentences = re.split(r'(?<=[。！？\n])', text)
+    
+    for sentence in sentences:
+        sentence_tokens = count_tokens(sentence)
+        current_tokens = count_tokens(current_chunk)
+        
+        if current_tokens + sentence_tokens <= max_tokens:
+            current_chunk += sentence
+        else:
+            if current_chunk:
+                chunks.append(current_chunk)
+            current_chunk = sentence
+    
+    if current_chunk:
+        chunks.append(current_chunk)
+    
+    # 合并短 chunk（< min_tokens）
+    chunks = merge_short_chunks(chunks, min_tokens)
+    return chunks
+
+def merge_short_chunks(chunks, min_tokens):
+    """将短 chunk 合并到前一个 chunk"""
+    if not chunks:
+        return chunks
+    merged = [chunks[0]]
+    for chunk in chunks[1:]:
+        if count_tokens(chunk) < min_tokens:
+            merged[-1] += chunk  # 合并到前一个
+        else:
+            merged.append(chunk)
+    return merged
+
+def calc_overlap(chunk_size: int, strategy: str = "semantic") -> int:
+    """动态计算 overlap，并保证语义完整"""
+    ratio = 0.15  # 默认 15%
+    raw_overlap = max(50, int(chunk_size * ratio))
+    
+    if strategy == "semantic":
+        # 尝试在句子边界切分 overlap，保证语义完整
+        # 取前 raw_overlap 个 token 对应的文本，然后向前/后调整到句子边界
+        return raw_overlap  # 实际实现时在 chunk 级别调整
+    return raw_overlap
+```
+
+**按文档类型的切分策略**：
+
+| 文档类型 | Chunk 策略 | 说明 |
+|---------|------------|------|
+| Markdown/Word（有标题） | 按 H1/H2 层级 + Token 上限 | H1/H2 为 chunk 边界，超长再分 |
+| PDF（有文字层） | 按段落边界 + Token 上限 | pdfplumber 提取段落 |
+| HTML | 按 DOM 主内容块（article/main）+ Token 上限 | BeautifulSoup 提取 |
+| TXT（无结构） | 先 AI 分段 → 按标题切分；失败则固定 Token | 依赖 T1.7 txt_ai_segment |
+| Excel（表格） | 每个 Sheet 一个 chunk（表头 + 所有行） | 表格整体索引，不分拆 |
+| PDF/Word 内嵌表格 | 表格单独提取 → 一个表格一个 chunk | 与正文 chunk 分开 |
+
+**动态 Overlap 计算**：
+```python
+def calc_overlap(chunk_size: int) -> int:
+    """动态计算 overlap：chunk_size 的 10-20%"""
+    ratio = 0.15  # 默认 15%
+    return max(50, int(chunk_size * ratio))
+```
 
 **切块元数据**：
 ```json
 {
     "chunk_id": "chunk_xxx",
     "content": "...",
+    "token_count": 487,
     "metadata": {
         "source_type": "pdf",
+        "file_name": "quality.pdf",
         "title": "产品质量标准",
-        "url_or_filename": "/docs/quality.pdf",
         "page": 3,
         "chapter": "第三章",
+        "heading_level": 2,
         "chunk_index": 1,
-        "total_chunks": 12
+        "total_chunks": 12,
+        "overlap_prev": 80,
+        "overlap_next": 80,
+        "warnings": ["W102", "W201"]
     }
 }
 ```
 
-**任务拆解**：
-- [ ] T1.4.1 基于标题层级切块
-- [ ] T1.4.2 RecursiveCharacterTextSplitter
-- [ ] T1.4.3 元数据自动注入
-- [ ] T1.4.4 切块大小可配置
+---
 
-**质量门禁**：5 个验收测试全部通过
+**处理警告项代码体系**：
+
+> 所有处理异常（非致命错误）均生成警告代码，存入 `chunk.metadata.warnings[]`，并在前端展示。
+
+| 代码 | 级别 | 说明 | 触发场景 |
+|------|------|------|----------|
+| **W101** | ⚠️ 警告 | PDF 扫描版，跳过 OCR | `text_layer_length < 50 chars/page`，标记 `needs_ocr=true` |
+| **W102** | ⚠️ 警告 | TXT AI 分段失败，已 fallback 到固定 Token 切分 | AI 分段 API 不可用或置信度 < 70% |
+| **W103** | ⚠️ 警告 | 部分页面/区块提取失败，已跳过 | PDF/Word 中某些页损坏或无文字 |
+| **W104** | ⚠️ 警告 | 编码自动检测置信度低，可能存在乱码 | chardet confidence < 0.7 |
+| **W105** | ℹ️ 提示 | 短 chunk 已合并到上一个 chunk | chunk tokens < `min_tokens`（50） |
+| **W106** | ℹ️ 提示 | 表格超过单 chunk 上限，已截断 | 表格 token 数 > `max_tokens`（ rare，表格整体为 1 chunk 时可能触发） |
+| **W107** | ⚠️ 警告 | 重复文件检测：此文件内容与他人相同 | content_hash 已存在，执行覆盖更新 |
+| **W108** | ℹ️ 提示 | 标题层级不完整，chunk 边界可能不准 | AI 分段未识别出 H1-H3 |
+| **W109** | ⚠️ 警告 | 图片提取失败（PDF/Word 内嵌图片） | PIL/Pillow 解压失败 |
+| **W110** | ℹ️ 提示 | Overlap 动态计算值已应用 | 每次 chunk 时记录实际 overlap 值 |
+
+**警告返回格式**（API Response 中新增 `warnings` 字段）：
+```json
+{
+    "document_id": "doc_xxx",
+    "status": "partial_success",   // 全部成功=full_success，部分成功=partial_success，全部失败=failed
+    "chunks_created": 45,
+    "warnings": [
+        {"code": "W102", "level": "warning", "message": "TXT AI分段失败，已使用智能固定Token切分", "detail": "AI API 响应超时，已自动在标点符号处切分"}
+    ],
+    "errors": [],
+    "debug_info": {   // ⚠️ 新增：仅在 debug=true 参数时返回
+        "retrieved_doc_ids": ["chunk_001", "chunk_002", "chunk_003"],
+        "embedding_time_ms": 120,
+        "model_response_time_ms": 850,
+        "rerank_scores": [0.92, 0.87, 0.75],
+        "chunk_strategy_used": "smart_fixed_token",
+        "overlap_actual": 80
+    }
+}
+```
+
+**Debug 模式使用方式**：
+```
+POST /api/v1/knowledge/upload?debug=true
+POST /api/v1/rag/query
+{
+    "query": "什么是Ccbot？",
+    "agent_id": "agent_001",
+    "debug": true   // 开启调试模式
+}
+```
 
 ---
 
-#### T1.5 混合检索（Hybrid Search）
+**验收测试（先定义）**：
+
+| 测试用例 | 输入 | 期望输出 | 验收标准 |
+|----------|------|----------|----------|
+| test_chunk_heading_boundary | H1-H4 文档 | 标题边界完整率 ≥ 95% | 边界不错位 |
+| test_chunk_overlap_dynamic | 512 tokens chunk | overlap = 80 tokens（~15%） | 动态计算正确 |
+| test_chunk_merge_short | 含 <50 token 段落的文档 | 短 chunk 合并到前一个 | 无独立短 chunk |
+| test_chunk_table_single | Excel/Word 表格 | 一个表格一个 chunk | 表格不拆分成多 chunk |
+| test_chunk_txt_fallback | AI 分段失败的 TXT | fallback 固定 Token + W102 警告 | W102 在 warnings 中 |
+| test_chunk_metadata_complete | 多来源文档 | metadata 字段完整 | title/page/heading_level 正确 |
+| test_chunk_warning_codes | 含扫描页的 PDF | W101 警告代码返回 | warnings[] 含 W101 |
+| test_chunk_min_length | min_tokens=50 | 所有 chunk ≥ 50 tokens 或被合并 | 无 <50 token 的独立 chunk |
+
+**任务拆解**：
+- [ ] T1.8.1 按标题层级切分（MD/Word/PDF 有结构文档）
+- [ ] T1.8.2 固定 Token 切分（TXT fallback + RecursiveCharacterTextSplitter）
+- [ ] T1.8.3 动态 Overlap 计算
+- [ ] T1.8.4 短 chunk 合并逻辑（min_tokens=50）
+- [ ] T1.8.5 表格整体作为一个 chunk（Excel/Word）
+- [ ] T1.8.6 警告代码体系实现（W101-W110）
+- [ ] T1.8.7 chunk 元数据自动注入
+
+**质量门禁**：8 个验收测试全部通过
+
+---
+
+#### T1.9 混合检索（Hybrid Search）
 
 **功能描述**：结合向量检索和 BM25 关键词检索，提高召回率。
 
@@ -805,16 +1311,16 @@ def reciprocal_rank_fusion(results_list, k=60):
 ```
 
 **任务拆解**：
-- [ ] T1.5.1 集成 rank-bm25
-- [ ] T1.5.2 实现 RRF 融合
-- [ ] T1.5.3 升级 retrieve() 方法
-- [ ] T1.5.4 Playground 展示检索来源
+- [ ] T1.9.1 集成 rank-bm25
+- [ ] T1.9.2 实现 RRF 融合
+- [ ] T1.9.3 升级 retrieve() 方法
+- [ ] T1.9.4 Playground 展示检索来源
 
 **质量门禁**：5 个验收测试全部通过 + T0.3 召回率 ≥ 90%
 
 ---
 
-#### T1.6 增量索引
+#### T1.10 增量索引
 
 **功能描述**：只更新变化的文档，不重建整个索引。
 
@@ -829,16 +1335,16 @@ def reciprocal_rank_fusion(results_list, k=60):
 | test_incremental_rollback | 更新失败 | 自动回滚 | 数据一致 |
 
 **任务拆解**：
-- [ ] T1.6.1 变更检测（etag/last_modified）
-- [ ] T1.6.2 增量 upsert 逻辑
-- [ ] T1.6.3 统计信息记录
-- [ ] T1.6.4 前端更新详情展示
+- [ ] T1.10.1 变更检测（etag/last_modified）
+- [ ] T1.10.2 增量 upsert 逻辑
+- [ ] T1.10.3 统计信息记录
+- [ ] T1.10.4 前端更新详情展示
 
 **质量门禁**：5 个验收测试全部通过
 
 ---
 
-#### T1.7 答案引用溯源
+#### T1.11 答案引用溯源
 
 **功能描述**：增强引用来源展示，标注页码、章节。
 
@@ -853,16 +1359,16 @@ def reciprocal_rank_fusion(results_list, k=60):
 | test_citation_coverage | 标准测试集 | 来源覆盖率 ≥ 95% | T0.3 指标 |
 
 **任务拆解**：
-- [ ] T1.7.1 增强 extract_sources()
-- [ ] T1.7.2 前端引用展示优化
-- [ ] T1.7.3 LLM Prompt 优化
-- [ ] T1.7.4 无来源场景处理
+- [ ] T1.11.1 增强 extract_sources()
+- [ ] T1.11.2 前端引用展示优化
+- [ ] T1.11.3 LLM Prompt 优化
+- [ ] T1.11.4 无来源场景处理
 
 **质量门禁**：5 个验收测试全部通过 + T0.3 来源覆盖率 ≥ 95%
 
 ---
 
-#### T1.8 计费与用量控制
+#### T1.12 计费与用量控制
 
 **功能描述**：基础计费能力，月度用量统计和限制。
 
@@ -877,8 +1383,8 @@ def reciprocal_rank_fusion(results_list, k=60):
 | test_quota_dashboard | 管理后台 | 图表展示 | 趋势正确 |
 
 **任务拆解**：
-- [ ] T1.8.1 数据库迁移脚本
-- [ ] T1.8.2 用量异步更新
+- [ ] T1.12.1 数据库迁移脚本
+- [ ] T1.12.2 用量异步更新
 - [ ] T1.8.3 月度重置任务
 - [ ] T1.8.4 前端用量展示
 
@@ -907,6 +1413,115 @@ def reciprocal_rank_fusion(results_list, k=60):
 **质量门禁**：4 个验收测试全部通过
 
 ---
+---
+
+#### T1.13 文档生命周期管理（新增）
+
+**功能描述**：文档删除时向量清理、版本管理、垃圾回收。详见 `openspec/DOCUMENT_LIFECYCLE.md`。
+
+**验收测试（先定义）**：
+
+| 测试用例 | 输入 | 期望输出 | 验收标准 |
+|----------|------|----------|----------|
+| test_delete_vector_cleanup | 删除含45个chunk的文档 | Qdrant中向量已删除 | chunk_id不存在 |
+| test_update_atomic | 更新文档 | 旧向量删除+新向量插入 | 无旧向量残留 |
+| test_gc_orphaned | 手动插入孤立向量 | GC任务清理 | 孤立向量删除 |
+
+**任务拆解**：
+- [ ] T1.13.1 文档软删除 + 向量清理
+- [ ] T1.13.2 文档版本管理 + 回滚
+- [ ] T1.13.3 垃圾回收定时任务
+- [ ] T1.13.4 删除/更新 API
+
+**质量门禁**：3 个验收测试全部通过
+
+---
+
+#### T1.14 Prometheus 监控埋点（新增）
+
+**功能描述**：API层、RAG核心、下游依赖指标埋点。详见 `openspec/MONITORING_ALERTING.md`。
+
+**验收测试（先定义）**：
+
+| 测试用例 | 输入 | 期望输出 | 验收标准 |
+|----------|------|----------|----------|
+| test_metrics_endpoint | 访问 `/metrics` | PromQL格式指标返回 | HTTP 200 |
+| test_log_json | 发起API请求 | 日志为合法JSON | 可被Logstash解析 |
+
+**任务拆解**：
+- [ ] T1.14.1 API请求/延迟/错误率指标
+- [ ] T1.14.2 RAG检索/Embedding/LLM指标  
+- [ ] T1.14.3 日志规范实现（JSON + trace_id）
+- [ ] T1.14.4 Alertmanager 配置 + 告警规则
+
+**质量门禁**：2 个验收测试全部通过
+
+---
+
+#### T1.15 Grafana 仪表盘（新增）
+
+**功能描述**：可视化仪表盘，展示API性能、RAG指标、LLM用量。
+
+**验收测试（先定义）**：
+
+| 测试用例 | 输入 | 期望输出 | 验收标准 |
+|----------|------|----------|----------|
+| test_grafana_dashboard | 查看Grafana | 图表数据正确 | 无空数据 |
+
+**任务拆解**：
+- [ ] T1.15.1 Grafana Dashboard 配置
+- [ ] T1.15.2 告警渠道对接（钉钉/企微）
+
+**质量门禁**：1 个验收测试全部通过
+
+---
+
+#### T1.16 文件上传安全（新增）
+
+**功能描述**：文件上传三层验证、内容安全审核、向量注入防护。详见 `openspec/SECURITY_BOUNDARY.md`。
+
+**验收测试（先定义）**：
+
+| 测试用例 | 输入 | 期望输出 | 验收标准 |
+|----------|------|----------|----------|
+| test_upload_exe | 上传 `malware.exe` | HTTP 400 | 拒绝上传 |
+| test_upload_mime_spoof | 修改MIME类型 | HTTP 400 | 检测真实类型 |
+| test_vector_injection | 含危险指令的文档 | 内容被清理 | chunk中无危险指令 |
+
+**任务拆解**：
+- [ ] T1.16.1 文件上传三层验证（扩展名+MIME+签名）
+- [ ] T1.16.2 内容安全审核（文本+图片）
+- [ ] T1.16.3 向量注入攻击防护
+- [ ] T1.16.4 API 限流与鉴权
+- [ ] T1.16.5 安全审计日志
+
+**质量门禁**：3 个验收测试全部通过
+
+---
+
+#### T1.17 Qdrant 运维（新增）
+
+**功能描述**：Qdrant备份恢复、扩容方案、MinIO迁移。详见 `openspec/OPS_MANUAL.md`。
+
+**验收测试（先定义）**：
+
+| 测试用例 | 输入 | 期望输出 | 验收标准 |
+|----------|------|----------|----------|
+| test_qdrant_backup | 执行备份脚本 | 快照文件生成 | 文件大小>0 |
+| test_qdrant_restore | 从快照恢复 | 数据完整恢复 | 向量数量一致 |
+| test_health_check | 执行健康检查 | 所有服务OK | 自动修复触发 |
+
+**任务拆解**：
+- [ ] T1.17.1 Qdrant 备份脚本 + 定时任务
+- [ ] T1.17.2 Qdrant 恢复流程文档 + 演练
+- [ ] T1.17.3 MinIO 迁移方案 + 脚本
+- [ ] T1.17.4 健康检查脚本 + 自动修复
+- [ ] T1.17.5 运维任务自动化（Cron + 告警）
+
+**质量门禁**：3 个验收测试全部通过
+
+---
+
 
 ### 3.3 阶段 1 验收标准
 
@@ -914,10 +1529,14 @@ def reciprocal_rank_fusion(results_list, k=60):
 
 | 功能模块 | 验收测试通过率 | 核心指标达标 |
 |----------|---------------|-------------|
-| PDF 上传 | 5/5 | 准确率 ≥ 98% |
-| Word 上传 | 4/4 | 段落结构保留 |
-| 数据清洗 | 5/5 | 噪音移除率 ≥ 95% |
-| 语义切块 | 5/5 | 边界完整率 ≥ 95% |
+| 统一上传基座 | 8/8 | MIME 路由正确 |
+| TXT/HTML/MD 上传 | 8/8 | 编码/结构保留 |
+| PDF 上传 | 7/7 | 文字准确率 ≥ 98%，图片提取 |
+| Word 上传 | 5/5 | 段落/表格/图片保留 |
+| Excel 上传 | 5/5 | 多 Sheet 正确解析 |
+| 图片上传 | 5/5 | 格式/缩放正确 |
+| 数据清洗 | 7/7 | 去重/表格转MD/AI分段 |
+| 语义切块 | 9/9 | 边界完整率 ≥ 95%，智能切分 |
 | 混合检索 | 5/5 | 召回率 ≥ 90% |
 | 增量索引 | 5/5 | 效率提升 ≥ 90% |
 | 引用溯源 | 5/5 | 来源覆盖率 ≥ 95% |
@@ -925,6 +1544,7 @@ def reciprocal_rank_fusion(results_list, k=60):
 | 安全增强 | 4/4 | 隔离性 100% |
 
 **综合准确率**：≥ 85%（由 T0.3 评估确认）
+**拒答测试通过率**：≥ 80%（新增，测试集含 10-20 条无关问题）
 
 ---
 

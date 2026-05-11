@@ -119,3 +119,135 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Backend tests use `backend/tests/conftest.py` to force `BASJOO_TEST_MODE=1`, create isolated SQLite DBs under `backend/.pytest_dbs/`, and monkeypatch Qdrant/Jina/LLM integrations for most API tests.
 - Use the existing `client` fixture for authenticated admin API tests and `public_client` for unauthenticated/public-route coverage instead of building ad-hoc `AsyncClient` fixtures in individual test files.
 - If a test depends on real Redis/Qdrant hostnames, the fixtures auto-fallback between container hostnames and localhost.
+
+## Phased Roadmap & Current Stage
+
+The project follows a three-phase MVP approach defined in `openspec/PHASED_ROADMAP.md`:
+
+### Phase 1: MVP Text QA (CURRENT)
+- **Goal**: Pure text Q&A, validate RAG accuracy
+- **Tech stack**: FastAPI + LlamaIndex + Qdrant
+- **Key files**:
+  - `backend/services/rag_qdrant.py` — RAG retrieval logic
+  - `backend/services/qdrant_store.py` — Vector store abstraction
+  - `openspec/EVAL_TEST_SET.md` — RAG evaluation test set (~140 cases target)
+- **Phase 1 File Format Support** (defined in PHASED_ROADMAP.md T1.1-T1.6):
+  | Format | Priority | Status |
+  |--------|----------|--------|
+  | TXT | 🔴 High | TODO |
+  | HTML | 🔴 High | TODO |
+  | Markdown | 🔴 High | TODO |
+  | PDF | 🔴 High | TODO |
+  | Word (DOCX) | 🟡 Medium | TODO |
+  | Excel (XLSX) | 🟡 Medium | TODO |
+  | Image | 🟢 Low | TODO |
+- **Acceptance**: RAG text accuracy validated via EVAL_TEST_SET.md before moving to Phase 2
+- **Note**: PDF embedded images must be extracted and indexed as first-class citizens
+
+### Phase 1 Tech Stack Details (已确认)
+
+#### Embedding 模型
+- **当前**：硅基流动（Silicon Flow），`bge-large-zh-v1.5`（1024维，余弦距离）
+- **后续**：接入 UniAPI 后统一走 UniAPI 调用
+- **向量维度**：1024
+- **距离算法**：Cosine（余弦）
+
+#### Qdrant Collection 设计（⚠️ 已修正：单 Collection + Payload 过滤）
+
+> **设计变更（2026-05-10）**：原方案按 `agent_id` 分 Collection，经 RAG 专家评审指出存在资源浪费和运维灾难风险。已修正为单 Collection + Payload 过滤方案。
+
+- **Collection 名称**：`ccbot_docs`（单一集合）
+- **逻辑隔离**：通过 `payload.agent_id` 字段区分不同 agent 的数据
+- **Payload 索引**：对 `agent_id` 建 keyword 索引，查询性能几乎无损
+- **扩展优势**：调整向量维度或距离算法只需操作一个 Collection
+
+```python
+# 对 agent_id 建 Payload 索引（加速过滤查询）
+client.create_payload_index(
+    collection_name="ccbot_docs",
+    field_name="agent_id",
+    field_schema="keyword",
+)
+
+# 查询时按 agent_id 过滤
+client.search(
+    collection_name="ccbot_docs",
+    query_vector=query_embedding,
+    query_filter={"must": [{"key": "agent_id", "match": {"value": agent_id}}]},
+    limit=5,
+)
+```
+
+**图片/文件存储路径**：
+
+| 阶段 | 存储方式 | 路径/位置 |
+|------|-----------|------------|
+| 阶段一 | 本地文件系统 | `/opt/ccbot/storage/` |
+| 阶段二 | MinIO（S3 兼容） | `s3://ccbot-docs/` |
+
+- Qdrant 只存向量 + 元数据（文件路径/URL），**不存原始二进制文件**
+- 图片元数据存入 payload：`{"content_type": "image", "file_path": "/opt/ccbot/storage/images/xxx.jpg"}`
+
+#### AI 辅助任务模型分配
+| 任务 | 模型 | 说明 |
+|------|------|------|
+| TXT AI 分段/提取标题 | DeepSeek-chat | 便宜，结构化输出 |
+| 表格理解（Excel/Word → MD） | DeepSeek-chat | 需要一定推理 |
+| PDF 图片描述生成 | — | **阶段一只存图片，描述留阶段二** |
+| Text Embedding | bge-large-zh-v1.5（硅基流动） | 中文效果好 |
+| RAG 回答生成 | MiniMax（主力）/ DeepSeek（兜底） | 已确认 |
+
+#### 文本归一化
+| 规则 | 处理方式 |
+|------|---------|
+| 繁体→简体 | 用 `opencc` 转换 |
+| 全角→半角 | 英文/数字全角转半角 |
+| 标点归一化 | 保留原文，不强制转换 |
+| 代码块 | 保留原文，标记 `content_type: code` |
+
+### Phase 2: Image Understanding
+- **Goal**: Accept image input from users, understand and answer with text
+- **Key files**: TBD (to be scaffolded after Phase 1 complete)
+- **Note**: Image understanding, not image output
+
+### Phase 3: Multimodal Output
+- **Goal**: Agent replies with existing images/videos from knowledge base (not real-time generation)
+- **Key constraint**: Images/videos are first-class citizens in the knowledge base (see Core Constraints below)
+
+**Current focus**: Phase 1. Do not start Phase 2/3 work until Phase 1 RAG accuracy is validated.
+
+## Core Constraints
+
+### Knowledge Base: Images/Videos as First-Class Citizens
+
+**CRITICAL — do not violate this constraint:**
+
+- Images and videos uploaded to the knowledge base MUST be indexed as **first-class citizens**, not merely extracted for text.
+- The knowledge base index MUST support retrieving image/video content directly, not just text chunks derived from them.
+- When the agent replies, it MUST be able to return **existing images/videos** from the knowledge base to the user, not generate new ones.
+- **NO real-time image/video generation** — all visual content comes from pre-uploaded knowledge base material.
+- During RAG retrieval, image/video relevance scoring must be treated on par with text relevance.
+
+### Model Provider Convention
+
+- Primary model channel: **MiniMax** (via UniAPI at `api.decard.cc`)
+- Secondary channel: **DeepSeek** (fallback)
+- UniAPI endpoint: configured in `backend/config.py` or env vars
+- Local xray proxy (for dev): `HTTP 1081` (MacBook Air M5)
+
+### Evaluation-Driven Development
+
+- RAG evaluation test set: `openspec/EVAL_TEST_SET.md`
+- Before any Phase 1 completion claim, run the eval test set and document accuracy
+- Target: ~140 test cases for Phase 1
+- Format: each case has `question`, `expected_source_type`, `expected_keywords`
+
+## Evaluation (EVAL_TEST_SET.md)
+
+`openspec/EVAL_TEST_SET.md` is the RAG evaluation test set for Phase 1:
+
+- **Purpose**: Validate text Q&A accuracy of the RAG pipeline
+- **Usage**: Run evaluations against the current RAG implementation; record pass/fail per case
+- **Target size**: ~140 test cases
+- **Do NOT** modify the expected answers without explicit user approval
+- **When evaluating**: Compare RAG-retrieved context and generated answer against `expected_keywords` and `expected_source_type`
